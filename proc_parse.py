@@ -8,7 +8,7 @@ class CollectProcess(QObject):
 
     def __init__(self, str_reader: _io.BufferedReader):
         super().__init__()
-        self.processes = []
+        self.process_tree = {"proc_names": {}, "open_files": {}}  # process name dict, process open file dict
 
         # start a thread to parse the buffer string
         proc_parse_proc = Thread(target=self.collect_proc, args=(str_reader,))
@@ -26,11 +26,19 @@ class CollectProcess(QObject):
 
         # read handle.exe output stream send to proc_parser get process info
         for line in iter(str_reader.readline, b''):
-            self.processes.append(proc_parser(line))
+            self.build_process_tree(proc_parser(line))
 
     def append(self, process):
         self.processes.append(process)
         # self.append_signal.emit(process)
+
+    def build_process_tree(self, list_: list):
+        if list_[1] in self.process_tree["proc_names"]:
+            self.process_tree["proc_names"][list_[1]] = list_[0]
+            self.process_tree["open_files"][list_[1]].append([list_[2]])
+        else:
+            self.process_tree["proc_names"][list_[1]] = list_[0]
+            self.process_tree["open_files"][list_[1]] = [list_[2]]
 
 
 def proc_parser(process_str: bytes):
@@ -39,7 +47,7 @@ def proc_parser(process_str: bytes):
     Example string
     jcef_helper.exe    pid: 25532  type: File           308: E:\\Program Files\\percent.pak
     :param process_str:
-    :return: list(process_name, pid, file_name)
+    :return: list(process_name+pid, file_name)
     """
     process_str = process_str.decode('utf-8')  # decode binary to string
     # print(process_str)
