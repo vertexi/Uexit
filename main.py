@@ -3,7 +3,6 @@ from subprocess import PIPE, Popen
 from proc_parse import CollectProcess
 from ui import MainWindow
 from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import QObject
 
 sys.path.append(".")
 ON_POSIX = 'posix' in sys.builtin_module_names

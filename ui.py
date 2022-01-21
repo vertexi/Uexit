@@ -1,5 +1,6 @@
 from PyQt5 import uic
 from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout
+from PyQt5.QtCore import Qt
 
 
 class MainWindow(QMainWindow):
@@ -28,15 +29,6 @@ class MainWindow(QMainWindow):
         self.process_tree.setColumnCount(1)
         self.process_tree.setHeaderLabel("Process_name(PID)")
 
-        # temp = MyTreeWidgetItem(["hello"])
-        # temp.add_data("hello")
-        # temp.get_data()
-        # temp.addChild(MyTreeWidgetItem(["world"]))
-        # self.process_tree.addTopLevelItem(temp)
-        # self.process_tree.addTopLevelItem(MyTreeWidgetItem(["hello"]))
-        # self.process_tree.addTopLevelItem(MyTreeWidgetItem(["hello"]))
-        # self.process_tree.addTopLevelItem(MyTreeWidgetItem(["hello"]))
-
         # show app
         self.show()
 
@@ -50,17 +42,22 @@ class MyTreeWidget(QTreeWidget):
         # list_[0] process_name list_[1] pid list_[2] open file path
         if list_[1] in self.process_tree:
             # create follow child file path item
-            path_item = MyTreeWidgetItem([list_[2]])
-            self.process_tree[list_[1]].addChild(path_item)
+            path_item = MyTreeWidgetItem(self.process_tree[list_[1]])
+            path_item.setText(0, list_[2])
+            path_item.setFlags(path_item.flags() | Qt.ItemIsUserCheckable)
+            path_item.setCheckState(0, Qt.Unchecked)
         else:
             # create process_name(PID) top item
-            tree_item = MyTreeWidgetItem([list_[0] + "(" + list_[1] + ")"])
+            tree_item = MyTreeWidgetItem(self)
+            tree_item.setText(0, list_[0] + "(" + list_[1] + ")")
             tree_item.add_data(list_[1])
-            self.addTopLevelItem(tree_item)
+            tree_item.setFlags(tree_item.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable)
 
             # create first child file path item
-            path_item = MyTreeWidgetItem([list_[2]])
-            tree_item.addChild(path_item)
+            path_item = MyTreeWidgetItem(tree_item)
+            path_item.setText(0, list_[2])
+            path_item.setFlags(path_item.flags() | Qt.ItemIsUserCheckable)
+            path_item.setCheckState(0, Qt.Unchecked)
 
             self.process_tree[list_[1]] = tree_item
 
@@ -75,4 +72,3 @@ class MyTreeWidgetItem(QTreeWidgetItem):
 
     def get_data(self):
         print(self.data)
-
