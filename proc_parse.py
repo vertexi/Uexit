@@ -1,10 +1,11 @@
 import _io
-from PyQt5.QtCore import pyqtSignal, QObject
+from PyQt5.QtCore import pyqtSignal, QObject, pyqtBoundSignal
 from threading import Thread
 
 
 class CollectProcess(QObject):
-    append_signal = pyqtSignal(list)
+    update_tree_signal: pyqtBoundSignal
+    update_tree_signal = pyqtSignal(list)
 
     def __init__(self, str_reader: _io.BufferedReader):
         super().__init__()
@@ -26,11 +27,9 @@ class CollectProcess(QObject):
 
         # read handle.exe output stream send to proc_parser get process info
         for line in iter(str_reader.readline, b''):
-            self.build_process_tree(proc_parser(line))
-
-    def append(self, process):
-        self.processes.append(process)
-        # self.append_signal.emit(process)
+            parsed = proc_parser(line)
+            self.build_process_tree(parsed)
+            self.update_tree_signal.emit(parsed)
 
     def build_process_tree(self, list_: list):
         if list_[1] in self.process_tree["proc_names"]:
