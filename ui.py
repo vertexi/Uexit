@@ -1,5 +1,5 @@
 from PyQt5 import uic
-from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QPushButton
+from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QPushButton, QLineEdit
 from PyQt5.QtCore import Qt
 
 
@@ -18,6 +18,7 @@ class MainWindow(QMainWindow):
         self.temp_tree = self.findChild(QTreeWidget, "process_tree")
         self.verticalLayout_2 = self.findChild(QVBoxLayout, "verticalLayout_2")
         self.kill_button = self.findChild(QPushButton, "kill_pushbutton")
+        self.file_path_input = self.findChild(QLineEdit, "file_path_input")
 
         # replace template widgets to my customized tree widgets
         self.process_tree = MyTreeWidget()
@@ -30,6 +31,8 @@ class MainWindow(QMainWindow):
         self.process_tree.setObjectName("process_tree")
         self.process_tree.setColumnCount(1)
         self.process_tree.setHeaderLabel("Process_name(PID)")
+
+        LineEditDragFileInjector(self.file_path_input)
 
         # show app
         self.show()
@@ -65,7 +68,7 @@ class MyTreeWidget(QTreeWidget):
 
     def send_to_kill(self):
         for i in range(self.topLevelItemCount()):
-            print(self.topLevelItem(i).text(0)+"   ", end='')
+            print(self.topLevelItem(i).text(0) + "   ", end='')
             print(self.topLevelItem(i).checkState(0))
 
 
@@ -79,3 +82,36 @@ class MyTreeWidgetItem(QTreeWidgetItem):
 
     def get_data(self):
         print(self.data)
+
+
+class LineEditDragFileInjector:
+    def __init__(self, line_edit, auto_inject=True):
+        self.line_edit = line_edit
+        if auto_inject:
+            self.inject_dragFile()
+
+    def inject_dragFile(self):
+        self.line_edit.setDragEnabled(True)
+        self.line_edit.dragEnterEvent = self.drag_enter_event
+        self.line_edit.dragMoveEvent = self.drag_move_event
+        self.line_edit.dropEvent = self.drop_event
+
+    def drag_enter_event(self, event):
+        data = event.mimeData()
+        urls = data.urls()
+        if urls and urls[0].scheme() == 'file':
+            event.acceptProposedAction()
+
+    def drag_move_event(self, event):
+        data = event.mimeData()
+        urls = data.urls()
+        if urls and urls[0].scheme() == 'file':
+            event.acceptProposedAction()
+
+    def drop_event(self, event):
+        data = event.mimeData()
+        urls = data.urls()
+        if urls and urls[0].scheme() == 'file':
+            # for some reason, this doubles up the intro slash
+            filepath = str(urls[0].path())[1:]
+            self.line_edit.setText(filepath)
