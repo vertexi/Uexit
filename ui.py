@@ -1,12 +1,16 @@
 from PyQt5 import uic
-from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QPushButton, QLineEdit
+from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout,\
+                            QPushButton, QLineEdit, QHBoxLayout, QWidget
 from PyQt5.QtCore import Qt
+from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtCore import pyqtSignal, pyqtBoundSignal
 
 
 class MainWindow(QMainWindow):
     process_tree: QTreeWidget
     verticalLayout_2: QVBoxLayout
     kill_button: QPushButton
+    refresh_pushbutton: QPushButton
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -15,24 +19,38 @@ class MainWindow(QMainWindow):
         uic.loadUi("main.ui", self)
 
         # get widgets
+        self.centralwidget = self.findChild(QWidget, "centralwidget")
         self.temp_tree = self.findChild(QTreeWidget, "process_tree")
         self.verticalLayout_2 = self.findChild(QVBoxLayout, "verticalLayout_2")
         self.kill_button = self.findChild(QPushButton, "kill_pushbutton")
-        self.file_path_input = self.findChild(QLineEdit, "file_path_input")
+        self.tmp_file_path_input = self.findChild(QLineEdit, "file_path_input")
+        self.horizontalLayout_2 = self.findChild(QHBoxLayout, "horizontalLayout_2")
+        self.refresh_pushbutton = self.findChild(QPushButton, "refresh_pushbutton")
 
         # replace template widgets to my customized tree widgets
         self.process_tree = MyTreeWidget()
         self.verticalLayout_2.replaceWidget(self.temp_tree, self.process_tree)
+        self.file_path_input = MyLineEdit(self.centralwidget)
+        self.horizontalLayout_2.replaceWidget(self.tmp_file_path_input, self.file_path_input)
 
         # delete the old tree widgets
         self.verticalLayout_2.removeWidget(self.temp_tree)
         self.temp_tree.deleteLater()
+        self.horizontalLayout_2.removeWidget(self.tmp_file_path_input)
+        self.tmp_file_path_input.deleteLater()
 
         self.process_tree.setObjectName("process_tree")
         self.process_tree.setColumnCount(1)
         self.process_tree.setHeaderLabel("Process_name(PID)")
 
+        self.file_path_input.setText("")
+        self.file_path_input.setObjectName("file_path_input")
+        self.file_path_input.setPlaceholderText(QCoreApplication.translate("MainWindow", "Drop or input file name"))
+
         LineEditDragFileInjector(self.file_path_input)
+
+        self.kill_button.clicked.connect(self.process_tree.send_to_kill)
+        self.refresh_pushbutton.clicked.connect(self.file_path_input.send_to_start_proc)
 
         # show app
         self.show()
@@ -82,6 +100,21 @@ class MyTreeWidgetItem(QTreeWidgetItem):
 
     def get_data(self):
         print(self.data)
+
+
+class MyLineEdit(QLineEdit):
+    start_proc_signal: pyqtBoundSignal
+    start_proc_signal = pyqtSignal(str)
+
+    def __init__(self, *args, **kwargs):
+        super(MyLineEdit, self).__init__(*args, **kwargs)
+        self.textChanged.connect(self.on_text_changed)
+
+    def on_text_changed(self):
+        self.setText(self.text().replace("/", "\\"))
+
+    def send_to_start_proc(self):
+        self.start_proc_signal.emit(str(self.text()))
 
 
 class LineEditDragFileInjector:

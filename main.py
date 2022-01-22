@@ -8,13 +8,11 @@ sys.path.append(".")
 ON_POSIX = 'posix' in sys.builtin_module_names
 
 if __name__ == '__main__':
-    process = Popen(["./handle64.exe", "E:\\"], stdout=PIPE, bufsize=1, close_fds=ON_POSIX)
-    collect_proc = CollectProcess(process.stdout)
-
     app = QApplication(sys.argv)
     main_window = MainWindow()
 
+    collect_proc = CollectProcess()
     collect_proc.update_tree_signal.connect(main_window.process_tree.build_process_tree)
-    main_window.kill_button.clicked.connect(main_window.process_tree.send_to_kill)
+    main_window.file_path_input.start_proc_signal.connect(collect_proc.start_process)
 
     app.exec_()
