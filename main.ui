@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>971</width>
-    <height>563</height>
+    <width>289</width>
+    <height>295</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,6 +15,27 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_2">
+      <item>
+       <widget class="QLineEdit" name="file_path_input">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="placeholderText">
+         <string>Drop or input file name</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="refresh_pushbutton">
+        <property name="text">
+         <string>Refresh</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
     <item>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
@@ -28,9 +49,15 @@
       </item>
      </layout>
     </item>
+    <item>
+     <widget class="QPushButton" name="kill_pushbutton">
+      <property name="text">
+       <string>Kill</string>
+      </property>
+     </widget>
+    </item>
    </layout>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
  </widget>
  <resources/>
  <connections/>

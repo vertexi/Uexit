@@ -15,5 +15,6 @@ if __name__ == '__main__':
     main_window = MainWindow()
 
     collect_proc.update_tree_signal.connect(main_window.process_tree.build_process_tree)
+    main_window.kill_button.clicked.connect(main_window.process_tree.send_to_kill)
 
     app.exec_()

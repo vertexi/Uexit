@@ -1,11 +1,12 @@
 from PyQt5 import uic
-from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout
+from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QPushButton
 from PyQt5.QtCore import Qt
 
 
 class MainWindow(QMainWindow):
     process_tree: QTreeWidget
     verticalLayout_2: QVBoxLayout
+    kill_button: QPushButton
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -16,6 +17,7 @@ class MainWindow(QMainWindow):
         # get widgets
         self.temp_tree = self.findChild(QTreeWidget, "process_tree")
         self.verticalLayout_2 = self.findChild(QVBoxLayout, "verticalLayout_2")
+        self.kill_button = self.findChild(QPushButton, "kill_pushbutton")
 
         # replace template widgets to my customized tree widgets
         self.process_tree = MyTreeWidget()
@@ -60,6 +62,11 @@ class MyTreeWidget(QTreeWidget):
             path_item.setCheckState(0, Qt.Unchecked)
 
             self.process_tree[list_[1]] = tree_item
+
+    def send_to_kill(self):
+        for i in range(self.topLevelItemCount()):
+            print(self.topLevelItem(i).text(0)+"   ", end='')
+            print(self.topLevelItem(i).checkState(0))
 
 
 class MyTreeWidgetItem(QTreeWidgetItem):
