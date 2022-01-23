@@ -5,6 +5,7 @@ from threading import Thread, Lock
 from subprocess import PIPE, Popen
 import time
 import psutil
+import os
 
 ON_POSIX = 'posix' in sys.builtin_module_names
 
@@ -88,7 +89,9 @@ class CollectProcess(QObject):
         super().__init__()
         self.process_tree = {"proc_names": {}, "open_files": {}}  # process name dict, process open file dict
         # for windows, create a process without a console
-        self.process = Popen(["./handle64.exe", file_path], stdout=PIPE, bufsize=1, close_fds=ON_POSIX, creationflags=0x00000008)
+
+        self.process = Popen([os.path.abspath(os.path.join(os.path.dirname(__file__), '..', "bin", "handle64.exe")),
+                              file_path], stdout=PIPE, bufsize=1, close_fds=ON_POSIX, creationflags=0x00000008)
         str_reader = self.process.stdout  # get string stream from handle.exe
         # create a thread to parse the buffer string
         self.proc_parse_proc = MyThreadParseProc(str_reader, self.update_tree_signal)

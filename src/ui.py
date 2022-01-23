@@ -6,6 +6,7 @@ from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtCore import pyqtSignal, pyqtBoundSignal
 from proc_parse import CollectProcess
 from task import Tasks
+import os
 
 
 class MainWindow(QMainWindow):
@@ -22,7 +23,8 @@ class MainWindow(QMainWindow):
         self.kill_task = Tasks()
 
         # load ui file
-        uic.loadUi("main.ui", self)
+        with open(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'res', 'main.ui'))) as ui_file:
+            uic.loadUi(ui_file, self)
 
         # get widgets
         self.centralwidget = self.findChild(QWidget, "centralwidget")
