@@ -93,9 +93,6 @@ class CollectProcess(QObject):
         self.proc_parse_proc = MyThreadParseProc(str_reader, self.update_tree_signal)
         # create a thread to find the executable path include the file_path
         self.find_exe_proc = MyThreadFindExe(file_path, self.update_tree_signal)
-
-    def start_process(self):
-        self.kill_exist_process()
         self.proc_parse_proc.my_start()
         self.find_exe_proc.my_start()
 

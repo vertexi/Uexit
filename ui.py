@@ -67,8 +67,9 @@ class MainWindow(QMainWindow):
         self.show()
 
     def start_collect_process(self, file_path: str):
+        if self.collect_proc:
+            self.collect_proc.kill_exist_process()
         self.collect_proc = CollectProcess(file_path)  # initialize the process collector
-        self.collect_proc.start_process()
         self.collect_proc.update_tree_signal.connect(self.process_tree.build_process_tree)
 
 
