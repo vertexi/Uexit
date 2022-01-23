@@ -27,3 +27,13 @@ def inter1():
                 print("%-5s %-10s %s" % (proc.info['pid'], proc.info['exe'], file.path))
                 break
 
+def easy_version():
+    for p in psutil.process_iter(['name', 'open_files', "exe"]):
+        for file in p.info['open_files'] or []:
+            if file.path.startswith('E:\\'):
+                print("%-5s %-10s %s" % (p.pid, p.info['name'][:10], file.path))
+
+        if p.info["exe"]:
+            if p.info["exe"].startswith('E:\\'):
+                print("%-5s %-10s" % (p.pid, p.info['name'][:10]))
+
