@@ -58,6 +58,9 @@ class MainWindow(QMainWindow):
 
 
 class MyTreeWidget(QTreeWidget):
+    start_kill_signal: pyqtBoundSignal
+    start_kill_signal = pyqtSignal(str)
+
     def __init__(self, *args, **kwargs):
         super(MyTreeWidget, self).__init__(*args, **kwargs)
         self.process_tree = {}  # pid:tree_itm
@@ -93,20 +96,17 @@ class MyTreeWidget(QTreeWidget):
 
     def send_to_kill(self):
         for i in range(self.topLevelItemCount()):
-            print(self.topLevelItem(i).text(0) + "   ", end='')
-            print(self.topLevelItem(i).checkState(0))
+            if int(self.topLevelItem(i).checkState(0)) > 0:
+                self.start_kill_signal.emit(self.topLevelItem(i).datum)
 
 
 class MyTreeWidgetItem(QTreeWidgetItem):
     def __init__(self, *args, **kwargs):
         super(MyTreeWidgetItem, self).__init__(*args, **kwargs)
-        self.data = None
+        self.datum = None
 
     def add_data(self, data):
-        self.data = data
-
-    def get_data(self):
-        print(self.data)
+        self.datum = data
 
 
 class MyLineEdit(QLineEdit):
