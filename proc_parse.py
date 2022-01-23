@@ -11,6 +11,11 @@ ON_POSIX = 'posix' in sys.builtin_module_names
 
 class MyThreadParseProc(Thread):
     def __init__(self, str_reader: _io.BufferedReader, update_signal: pyqtBoundSignal):
+        """
+        process the string buffer send main_windows's tree widget update
+        :param str_reader: buffer string
+        :param update_signal:
+        """
         super(MyThreadParseProc, self).__init__()
         self.mutex = Lock()
         self.stop_status = False
@@ -25,11 +30,6 @@ class MyThreadParseProc(Thread):
         self.start()
 
     def run(self):
-        """
-        :param str_reader: buffer string
-        storage parser result list(process_name, pid, file_name) append to self.processes
-        """
-
         # skip the first useless information
         for _ in range(5):
             self.str_reader.readline()
@@ -48,27 +48,56 @@ class MyThreadParseProc(Thread):
             self.update_tree_signal.emit(parsed)
 
 
+class MyThreadFindExe(Thread):
+    def __init__(self, file_path: str, update_signal: pyqtBoundSignal):
+        super(MyThreadFindExe, self).__init__()
+        self.mutex = Lock()
+        self.stop_status = False
+        self.update_tree_signal = update_signal
+        self.file_path = file_path
+
+    def my_stop(self):
+        self.stop_status = True
+
+    def my_start(self):
+        self.stop_status = False
+        self.start()
+
+    def run(self):
+        for p in psutil.process_iter(['name', 'pid', "exe"]):
+            if p.info["exe"]:
+                if p.info["exe"].startswith(self.file_path):
+                    result = list([p.info["name"], str(p.info["pid"]), "", p.info["exe"]])
+                    self.update_tree_signal.emit(result)
+            # stop code condition
+            self.mutex.acquire()
+            try:
+                if self.stop_status:
+                    return
+            finally:
+                self.mutex.release()
+
+
 class CollectProcess(QObject):
     update_tree_signal: pyqtBoundSignal
     update_tree_signal = pyqtSignal(list)
     process: Popen
     proc_parse_proc: MyThreadParseProc
 
-    def __init__(self):
+    def __init__(self, file_path: str):
         super().__init__()
         self.process_tree = {"proc_names": {}, "open_files": {}}  # process name dict, process open file dict
-        self.process = None
-        self.proc_parse_proc = None
-
-    def start_process(self, file_path: str):
-        self.kill_exist_process()
-        self.process_tree = {"proc_names": {}, "open_files": {}}  # process name dict, process open file dict
         self.process = Popen(["./handle64.exe", file_path], stdout=PIPE, bufsize=1, close_fds=ON_POSIX)
-        str_reader = self.process.stdout
-
-        # start a thread to parse the buffer string
+        str_reader = self.process.stdout  # get string stream from handle.exe
+        # create a thread to parse the buffer string
         self.proc_parse_proc = MyThreadParseProc(str_reader, self.update_tree_signal)
+        # create a thread to find the executable path include the file_path
+        self.find_exe_proc = MyThreadFindExe(file_path, self.update_tree_signal)
+
+    def start_process(self):
+        self.kill_exist_process()
         self.proc_parse_proc.my_start()
+        self.find_exe_proc.my_start()
 
     def kill_exist_process(self):
         if self.process is None:
@@ -79,25 +108,9 @@ class CollectProcess(QObject):
 
         if self.proc_parse_proc:
             self.proc_parse_proc.my_stop()
+        if self.find_exe_proc:
+            self.find_exe_proc.my_stop()
         time.sleep(0.1)
-
-
-class MyThreadFindExe(Thread):
-    def __init__(self, update_signal: pyqtBoundSignal, target, args):
-        super(MyThreadFindExe, self).__init__(target=target, args=args)
-        self.mutex = Lock()
-        self.stop_status = False
-        self.update_tree_signal = update_signal
-
-    def my_stop(self):
-        self.stop_status = True
-
-    def find_exe(self, file_path: str):
-        for p in psutil.process_iter(['name', 'pid', "exe"]):
-            if p.info["exe"]:
-                if p.info["exe"].startswith(file_path):
-                    result = list([p.info["name"], str(p.info["pid"]), "", p.info["exe"]])
-                    self.update_tree_signal.emit(result)
 
 
 def proc_parser(process_str: bytes):

@@ -1,9 +1,11 @@
 from PyQt5 import uic
-from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout,\
-                            QPushButton, QLineEdit, QHBoxLayout, QWidget, QHeaderView
+from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, \
+    QPushButton, QLineEdit, QHBoxLayout, QWidget, QHeaderView
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtCore import pyqtSignal, pyqtBoundSignal
+from proc_parse import CollectProcess
+from task import Tasks
 
 
 class MainWindow(QMainWindow):
@@ -14,6 +16,10 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super(MainWindow, self).__init__()
+
+        # Initialize my customized classes
+        self.collect_proc = None
+        self.kill_task = Tasks()
 
         # load ui file
         uic.loadUi("main.ui", self)
@@ -49,12 +55,21 @@ class MainWindow(QMainWindow):
 
         LineEditDragFileInjector(self.file_path_input)
 
+        # connect signals and slots
         self.kill_button.clicked.connect(self.process_tree.send_to_kill)
+
         self.refresh_pushbutton.clicked.connect(self.file_path_input.send_to_start_proc)
+        self.file_path_input.start_proc_signal.connect(self.start_collect_process)
         self.refresh_pushbutton.clicked.connect(self.process_tree.clear_me)
+        self.process_tree.start_kill_signal.connect(self.kill_task.kill)
 
         # show app
         self.show()
+
+    def start_collect_process(self, file_path: str):
+        self.collect_proc = CollectProcess(file_path)  # initialize the process collector
+        self.collect_proc.start_process()
+        self.collect_proc.update_tree_signal.connect(self.process_tree.build_process_tree)
 
 
 class MyTreeWidget(QTreeWidget):
@@ -75,10 +90,11 @@ class MyTreeWidget(QTreeWidget):
         # list_[0] process_name list_[1] pid list_[2] open file path
         if list_[1] in self.process_tree:
             # create follow child file path item
-            path_item = MyTreeWidgetItem(self.process_tree[list_[1]])
+            path_item = MyTreeWidgetItem()
             path_item.setText(0, list_[2])
             path_item.setFlags(path_item.flags() | Qt.ItemIsUserCheckable)
             path_item.setCheckState(0, Qt.Unchecked)
+            self.process_tree[list_[1]].insertChild(0, path_item)
         else:
             # create process_name(PID) top item
             tree_item = MyTreeWidgetItem(self)
