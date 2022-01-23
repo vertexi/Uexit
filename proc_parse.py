@@ -87,7 +87,8 @@ class CollectProcess(QObject):
     def __init__(self, file_path: str):
         super().__init__()
         self.process_tree = {"proc_names": {}, "open_files": {}}  # process name dict, process open file dict
-        self.process = Popen(["./handle64.exe", file_path], stdout=PIPE, bufsize=1, close_fds=ON_POSIX)
+        # for windows, create a process without a console
+        self.process = Popen(["./handle64.exe", file_path], stdout=PIPE, bufsize=1, close_fds=ON_POSIX, creationflags=0x00000008)
         str_reader = self.process.stdout  # get string stream from handle.exe
         # create a thread to parse the buffer string
         self.proc_parse_proc = MyThreadParseProc(str_reader, self.update_tree_signal)
