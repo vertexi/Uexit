@@ -1,26 +1,47 @@
 import sys
 import _io
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtBoundSignal
-from threading import Thread
+from threading import Thread, Lock
 from subprocess import PIPE, Popen
+import time
+
 ON_POSIX = 'posix' in sys.builtin_module_names
 
 
 class CollectProcess(QObject):
     update_tree_signal: pyqtBoundSignal
     update_tree_signal = pyqtSignal(list)
+    process: Popen
+    proc_parse_proc: Thread
 
     def __init__(self):
         super().__init__()
         self.process_tree = {"proc_names": {}, "open_files": {}}  # process name dict, process open file dict
+        self.process = None
+        self.proc_parse_proc = None
+        self.mutex = Lock()
+        self.stop_status = False
 
     def start_process(self, file_path: str):
-        process = Popen(["./handle64.exe", file_path], stdout=PIPE, bufsize=1, close_fds=ON_POSIX)
-        str_reader = process.stdout
+        self.kill_exist_process()
+        self.process_tree = {"proc_names": {}, "open_files": {}}  # process name dict, process open file dict
+        self.process = Popen(["./handle64.exe", file_path], stdout=PIPE, bufsize=1, close_fds=ON_POSIX)
+        str_reader = self.process.stdout
 
         # start a thread to parse the buffer string
-        proc_parse_proc = Thread(target=self.collect_proc, args=(str_reader,))
-        proc_parse_proc.start()
+        self.proc_parse_proc = Thread(target=self.collect_proc, args=(str_reader,))
+        self.stop_status = False
+        self.proc_parse_proc.start()
+
+    def kill_exist_process(self):
+        if self.process is None:
+            return
+        else:
+            if self.process.poll() is None:
+                self.process.kill()
+
+        self.stop_status = True
+        time.sleep(0.1)
 
     def collect_proc(self, str_reader: _io.BufferedReader):
         """
@@ -34,6 +55,14 @@ class CollectProcess(QObject):
 
         # read handle.exe output stream send to proc_parser get process info
         for line in iter(str_reader.readline, b''):
+            # stop code condition
+            self.mutex.acquire()
+            try:
+                if self.stop_status:
+                    return
+            finally:
+                self.mutex.release()
+            # parse the input stream
             parsed = proc_parser(line)
             self.build_process_tree(parsed)
             self.update_tree_signal.emit(parsed)
