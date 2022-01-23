@@ -1,6 +1,6 @@
 from PyQt5 import uic
 from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout,\
-                            QPushButton, QLineEdit, QHBoxLayout, QWidget
+                            QPushButton, QLineEdit, QHBoxLayout, QWidget, QHeaderView
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtCore import pyqtSignal, pyqtBoundSignal
@@ -51,6 +51,7 @@ class MainWindow(QMainWindow):
 
         self.kill_button.clicked.connect(self.process_tree.send_to_kill)
         self.refresh_pushbutton.clicked.connect(self.file_path_input.send_to_start_proc)
+        self.refresh_pushbutton.clicked.connect(self.process_tree.clear_me)
 
         # show app
         self.show()
@@ -59,6 +60,12 @@ class MainWindow(QMainWindow):
 class MyTreeWidget(QTreeWidget):
     def __init__(self, *args, **kwargs):
         super(MyTreeWidget, self).__init__(*args, **kwargs)
+        self.process_tree = {}  # pid:tree_itm
+        self.header().setStretchLastSection(False)
+        self.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+
+    def clear_me(self):
+        self.clear()
         self.process_tree = {}  # pid:tree_itm
 
     def build_process_tree(self, list_: list):
