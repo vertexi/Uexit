@@ -1,6 +1,6 @@
 from PyQt5 import uic
 from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, \
-    QPushButton, QLineEdit, QHBoxLayout, QWidget, QHeaderView
+    QPushButton, QLineEdit, QHBoxLayout, QWidget, QHeaderView, QStatusBar
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtCore import pyqtSignal, pyqtBoundSignal
@@ -14,6 +14,7 @@ class MainWindow(QMainWindow):
     verticalLayout_2: QVBoxLayout
     kill_button: QPushButton
     refresh_pushbutton: QPushButton
+    status_bar: QStatusBar
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -34,6 +35,7 @@ class MainWindow(QMainWindow):
         self.tmp_file_path_input = self.findChild(QLineEdit, "file_path_input")
         self.horizontalLayout_2 = self.findChild(QHBoxLayout, "horizontalLayout_2")
         self.refresh_pushbutton = self.findChild(QPushButton, "refresh_pushbutton")
+        self.status_bar = self.findChild(QStatusBar, "statusBar")
 
         # replace template widgets to my customized tree widgets
         self.process_tree = MyTreeWidget()
@@ -73,6 +75,12 @@ class MainWindow(QMainWindow):
             self.collect_proc.kill_exist_process()
         self.collect_proc = CollectProcess(file_path)  # initialize the process collector
         self.collect_proc.update_tree_signal.connect(self.process_tree.build_process_tree)
+        self.collect_proc.complete_signal.connect(self.complete_message)
+        self.collect_proc.start_process()
+        self.status_bar.showMessage("Searching...")
+
+    def complete_message(self):
+        self.status_bar.showMessage("Search end")
 
 
 class MyTreeWidget(QTreeWidget):

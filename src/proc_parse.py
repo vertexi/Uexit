@@ -11,7 +11,8 @@ ON_POSIX = 'posix' in sys.builtin_module_names
 
 
 class MyThreadParseProc(Thread):
-    def __init__(self, str_reader: _io.BufferedReader, update_signal: pyqtBoundSignal):
+    def __init__(self, str_reader: _io.BufferedReader, update_signal: pyqtBoundSignal,
+                 complete_signal: pyqtBoundSignal):
         """
         process the string buffer send main_windows's tree widget update
         :param str_reader: buffer string
@@ -21,6 +22,7 @@ class MyThreadParseProc(Thread):
         self.mutex = Lock()
         self.stop_status = False
         self.update_tree_signal = update_signal
+        self.complete_signal = complete_signal
         self.str_reader = str_reader
 
     def my_stop(self):
@@ -47,6 +49,7 @@ class MyThreadParseProc(Thread):
             # parse the input stream
             parsed = proc_parser(line)
             self.update_tree_signal.emit(parsed)
+        self.complete_signal.emit()
 
 
 class MyThreadFindExe(Thread):
@@ -82,6 +85,9 @@ class MyThreadFindExe(Thread):
 class CollectProcess(QObject):
     update_tree_signal: pyqtBoundSignal
     update_tree_signal = pyqtSignal(list)
+    complete_signal: pyqtBoundSignal
+    complete_signal = pyqtSignal()
+
     process: Popen
     proc_parse_proc: MyThreadParseProc
 
@@ -94,9 +100,11 @@ class CollectProcess(QObject):
                               file_path], stdout=PIPE, bufsize=1, close_fds=ON_POSIX, creationflags=0x00000008)
         str_reader = self.process.stdout  # get string stream from handle.exe
         # create a thread to parse the buffer string
-        self.proc_parse_proc = MyThreadParseProc(str_reader, self.update_tree_signal)
+        self.proc_parse_proc = MyThreadParseProc(str_reader, self.update_tree_signal, self.complete_signal)
         # create a thread to find the executable path include the file_path
         self.find_exe_proc = MyThreadFindExe(file_path, self.update_tree_signal)
+
+    def start_process(self):
         self.proc_parse_proc.my_start()
         self.find_exe_proc.my_start()
 
