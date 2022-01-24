@@ -50,8 +50,9 @@ class MainWindow(QMainWindow):
         self.tmp_file_path_input.deleteLater()
 
         self.process_tree.setObjectName("process_tree")
-        self.process_tree.setColumnCount(1)
-        self.process_tree.setHeaderLabel("Process_name(PID)")
+        self.process_tree.setColumnCount(2)
+        # self.process_tree.setHeaderLabel("Process_name(PID)")
+        self.process_tree.setHeaderLabels(["Process_name(PID)", "Exec"])
 
         self.file_path_input.setText("")
         self.file_path_input.setObjectName("file_path_input")
@@ -110,6 +111,7 @@ class MyTreeWidget(QTreeWidget):
             # create process_name(PID) top item
             tree_item = MyTreeWidgetItem(self)
             tree_item.setText(0, list_[0] + "(" + list_[1] + ")")
+            tree_item.setText(1, list_[3])
             tree_item.add_data(list_[1])
             tree_item.setFlags(tree_item.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable)
 
