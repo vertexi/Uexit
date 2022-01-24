@@ -2,7 +2,7 @@ import sys
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QPixmap, QIcon
 from ui import MainWindow
-import os
+import global_seting
 
 sys.path.append(".")
 # make a custom application id
@@ -17,8 +17,7 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
 
     # make icon
-    icon_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'res', 'icon.ico'))
-    app.setWindowIcon(QIcon(QPixmap(icon_file)))
+    app.setWindowIcon(QIcon(QPixmap(global_seting.icon_file)))
 
     main_window = MainWindow()  # initialize main window
     app.exec_()  # run
