@@ -119,6 +119,7 @@ class MyTreeWidget(QTreeWidget):
             # create first child file path item
             path_item = MyTreeWidgetItem(tree_item)
             path_item.setText(0, list_[2])
+            path_item.setHidden(True)
             path_item.setFlags(path_item.flags() | Qt.ItemIsUserCheckable)
             path_item.setCheckState(0, Qt.Unchecked)
 
