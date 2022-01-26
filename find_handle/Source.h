@@ -274,5 +274,5 @@ typedef struct _SYSTEM_HANDLE
 typedef struct _SYSTEM_HANDLE_INFORMATION
 {
     ULONG HandleCount;
-    SYSTEM_HANDLE Handles[1];
+    SYSTEM_HANDLE Handles[1];  // basically it's just a pointer, size don't matter
 } SYSTEM_HANDLE_INFORMATION, * PSYSTEM_HANDLE_INFORMATION;

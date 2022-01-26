@@ -1,3 +1,6 @@
+#ifndef UNICODE
+#define UNICODE
+#endif
 #include <stdio.h>
 #include <windows.h>
 #include "Source.h"
@@ -13,13 +16,13 @@ int wmain()
 	_NtQuerySystemInformation NtQuerySystemInformation = get_NtQuerySystemInformation_handle();
 	if (NtQuerySystemInformation == NULL)
 	{
-		printf("get NtQuerySystemInformation function handle failed.\n");
+		printf("error: get NtQuerySystemInformation function handle failed.\n");
 		return(-1);
 	}
 	else {
 		if (VERBOSE)
 		{
-			printf("Success get NtQuerySystemInformation function handle.\n");
+			printf("Success: get NtQuerySystemInformation function handle.\n");
 		}
 	}
 
@@ -27,7 +30,7 @@ int wmain()
 	PSYSTEM_HANDLE_INFORMATION handleInfo = get_system_handle_info(NtQuerySystemInformation);
 	if (handleInfo == NULL)
 	{
-		printf("get system handle info failed.\n");
+		printf("error: get system handle info failed.\n");
 		return(-1);
 	}
 	else {
@@ -55,7 +58,7 @@ _NtQuerySystemInformation get_NtQuerySystemInformation_handle(void)
 	}
 	else {
 		// load ntdll failed, exit program.
-		printf("ntdll.dll load failed!\n");
+		printf("error: ntdll.dll load failed!\n");
 		return(NULL);
 	}
 }
@@ -71,30 +74,36 @@ PSYSTEM_HANDLE_INFORMATION get_system_handle_info(_NtQuerySystemInformation NtQu
 	DWORD handleInfoSize = 0x10000;
 	PSYSTEM_HANDLE_INFORMATION handleInfo = (PSYSTEM_HANDLE_INFORMATION)malloc(handleInfoSize);
 	// try to get system handles
-	if (handleInfo)
-		NTSTATUS status = NtQuerySystemInformation(SystemHandleInformation, handleInfo, handleInfoSize, &handleInfoSize);
-	else
+	if (handleInfo == NULL)
 		return(NULL);  // system mem is insufficient
 
-	// if mem length setting is insufficient, realloc and try again
-	while (status == STATUS_INFO_LENGTH_MISMATCH)
+	// if mem length setting is insufficient, double the mem length and realloc, try again
+	while ((status = NtQuerySystemInformation(
+		SystemHandleInformation,
+		handleInfo,
+		handleInfoSize,
+		NULL
+		)) == STATUS_INFO_LENGTH_MISMATCH)
 	{
+		handleInfoSize *= 2;
+		if (handleInfoSize > 0x10000000)
+		{
+			// handleInfoSize is too large
+			printf("error: handleInfoSize is too large");
+			return(NULL);
+		}
 		PSYSTEM_HANDLE_INFORMATION temp_p = (PSYSTEM_HANDLE_INFORMATION)realloc(handleInfo, handleInfoSize);
 		if (temp_p)
-		{
 			handleInfo = temp_p;
-			status = NtQuerySystemInformation(SystemHandleInformation, handleInfo, handleInfoSize, &handleInfoSize);
-		}
 		else
-		{
 			return(NULL);  // system mem is insufficient
-		}
 	}
 
 	// if NtQuerySystemInformation stopped return STATUS_INFO_LENGTH_MISMATCH
 	if (!NT_SUCCESS(status))
 	{
-		printf("NtQuerySystemInformation failed!\n");
+		free(handleInfo);
+		printf("error: NtQuerySystemInformation function failed!\n");
 		return(NULL);
 	}
 
