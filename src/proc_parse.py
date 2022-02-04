@@ -39,11 +39,14 @@ class MyThreadParseProc(Thread):
 
         # read handle.exe output stream send to proc_parser get process info
         for line in iter(self.str_reader.readline, b''):
+            print(line)
+            if line == b'No matching handles found.\r\r\n':
+                break
             # stop code condition
             self.mutex.acquire()
             try:
                 if self.stop_status:
-                    return
+                    break
             finally:
                 self.mutex.release()
             # parse the input stream
