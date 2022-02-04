@@ -7,10 +7,10 @@
 #include <psapi.h>
 #include <strsafe.h>
 
-#define DEBUG
+// #define DEBUG
 
 #ifdef DEBUG
-#define DEBUG_PRINT(...) do{ fprintf( stderr, __VA_ARGS__ ); } while( false )
+#define DEBUG_PRINT(...) do{ fprintf( stdout, __VA_ARGS__ ); } while( false )
 #else
 #define DEBUG_PRINT(...) do{ } while ( false )
 #endif
@@ -72,6 +72,7 @@ int wmain()
 				continue;
 			}
 			if (filename) {
+				_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
 				continue;
 			}
 		}
@@ -326,7 +327,5 @@ BOOL ConvertFileName(PWSTR pszFilename)
 			while (*p++);
 		} while (!bFound && *p); // end of string
 	}
-
-	_tprintf(TEXT("File name is %s\n"), pszFilename);
 	return(TRUE);
 }
