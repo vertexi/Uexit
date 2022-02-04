@@ -9,9 +9,9 @@
 
 #define VERBOSE 1
 
-_NtQuerySystemInformation get_NtQuerySystemInformation_handle(void);
-_NtQueryObject get_NtQueryObject_handle(void);
-PSYSTEM_HANDLE_INFORMATION get_system_handle_info(_NtQuerySystemInformation NtQuerySystemInformation);
+_NtQuerySystemInformation GetNtQuerySystemInformationHandle(void);
+_NtQueryObject GetNtQueryObjectHandle(void);
+PSYSTEM_HANDLE_INFORMATION GetSystemHandleInfo(_NtQuerySystemInformation NtQuerySystemInformation);
 HANDLE DuplicateFileHandle(SYSTEM_HANDLE handle);
 PWSTR GetFileNameFromHandle(HANDLE handle, _NtQueryObject NtQueryObject);
 BOOL ConvertFileName(PWSTR pszFilename);
@@ -20,21 +20,21 @@ int wmain()
 {
 	setlocale(LC_CTYPE, "");
 	// get NtQuerySystemInformation function from ntdll
-	_NtQuerySystemInformation NtQuerySystemInformation = get_NtQuerySystemInformation_handle();
+	_NtQuerySystemInformation NtQuerySystemInformation = GetNtQuerySystemInformationHandle();
 	if (NtQuerySystemInformation == NULL)
 	{
 		return(-1);
 	}
 	// get NtQueryObject function from ntdll
-	_NtQueryObject NtQueryObject = get_NtQueryObject_handle();
+	_NtQueryObject NtQueryObject = GetNtQueryObjectHandle();
 	if (NtQueryObject == NULL)
 	{
 		return(-1);
 	}
 
 	// get system hadle information
-	PSYSTEM_HANDLE_INFORMATION handleInfo = get_system_handle_info(NtQuerySystemInformation);
-	if (handleInfo == NULL)
+	PSYSTEM_HANDLE_INFORMATION HandleInfo = GetSystemHandleInfo(NtQuerySystemInformation);
+	if (HandleInfo == NULL)
 	{
 		printf("error: get system handle info failed.\n");
 		return(-1);
@@ -47,17 +47,16 @@ int wmain()
 	}
 
 	// enumerate all handles
-	for (ULONG i = 0; i < handleInfo->HandleCount; i++)
+	for (ULONG i = 0; i < HandleInfo->HandleCount; i++)
 	{
-		SYSTEM_HANDLE handle = handleInfo->Handles[i];
+		SYSTEM_HANDLE handle = HandleInfo->Handles[i];
 		
-
 		if (handle.ProcessId == 21924) {
-			HANDLE dupHandle = DuplicateFileHandle(handle);
+			HANDLE DupHandle = DuplicateFileHandle(handle);
 			PWSTR filename = NULL;
 			BOOL status = FALSE;
-			if (dupHandle) {
-				filename = GetFileNameFromHandle(dupHandle, NtQueryObject);
+			if (DupHandle) {
+				filename = GetFileNameFromHandle(DupHandle, NtQueryObject);
 			}
 			else {
 				continue;
@@ -77,15 +76,15 @@ int wmain()
 	return(0);
 }
 
-_NtQuerySystemInformation get_NtQuerySystemInformation_handle(void)
+_NtQuerySystemInformation GetNtQuerySystemInformationHandle(void)
 {
 	/* Import functions manually from NTDLL */
-	HMODULE dll_file = GetModuleHandleA("ntdll.dll");  // try to load ntdll, if return null exit
-	if (dll_file)
+	HMODULE Dllfile = GetModuleHandleA("ntdll.dll");  // try to load ntdll, if return null exit
+	if (Dllfile)
 	{
 		// get NtQuerySystemInformation handle
 		_NtQuerySystemInformation NtQuerySystemInformation =
-			(_NtQuerySystemInformation)GetProcAddress(dll_file, "NtQuerySystemInformation");
+			(_NtQuerySystemInformation)GetProcAddress(Dllfile, "NtQuerySystemInformation");
 
 		if (NtQuerySystemInformation == NULL)
 		{
@@ -107,15 +106,15 @@ _NtQuerySystemInformation get_NtQuerySystemInformation_handle(void)
 	}
 }
 
-_NtQueryObject get_NtQueryObject_handle(void)
+_NtQueryObject GetNtQueryObjectHandle(void)
 {
 	/* Import functions manually from NTDLL */
-	HMODULE dll_file = GetModuleHandleA("ntdll.dll");  // try to load ntdll, if return null exit
-	if (dll_file)
+	HMODULE Dllfile = GetModuleHandleA("ntdll.dll");  // try to load ntdll, if return null exit
+	if (Dllfile)
 	{
 		// get NtQuerySystemInformation handle
 		_NtQueryObject NtQueryObject =
-			(_NtQueryObject)GetProcAddress(dll_file, "NtQueryObject");
+			(_NtQueryObject)GetProcAddress(Dllfile, "NtQueryObject");
 
 		if (NtQueryObject == NULL)
 		{
@@ -138,7 +137,7 @@ _NtQueryObject get_NtQueryObject_handle(void)
 	}
 }
 
-PSYSTEM_HANDLE_INFORMATION get_system_handle_info(_NtQuerySystemInformation NtQuerySystemInformation)
+PSYSTEM_HANDLE_INFORMATION GetSystemHandleInfo(_NtQuerySystemInformation NtQuerySystemInformation)
 {
 	// storage system handle info to handleInfo by using NtQuerySystemInformation
 
@@ -146,30 +145,30 @@ PSYSTEM_HANDLE_INFORMATION get_system_handle_info(_NtQuerySystemInformation NtQu
 	NTSTATUS status = STATUS_INFO_LENGTH_MISMATCH;
 
 	// initialize handleInfo mem
-	DWORD handleInfoSize = 0x10000;
-	PSYSTEM_HANDLE_INFORMATION handleInfo = (PSYSTEM_HANDLE_INFORMATION)malloc(handleInfoSize);
+	DWORD HandleInfoSize = 0x10000;
+	PSYSTEM_HANDLE_INFORMATION HandleInfo = (PSYSTEM_HANDLE_INFORMATION)malloc(HandleInfoSize);
 	// try to get system handles
-	if (handleInfo == NULL)
+	if (HandleInfo == NULL)
 		return(NULL);  // system mem is insufficient
 
 	// if mem length setting is insufficient, double the mem length and realloc, try again
 	while ((status = NtQuerySystemInformation(
 		SystemHandleInformation,
-		handleInfo,
-		handleInfoSize,
+		HandleInfo,
+		HandleInfoSize,
 		NULL
 		)) == STATUS_INFO_LENGTH_MISMATCH)
 	{
-		handleInfoSize *= 2;
-		if (handleInfoSize > 0x10000000)
+		HandleInfoSize *= 2;
+		if (HandleInfoSize > 0x10000000)
 		{
 			// handleInfoSize is too large
 			printf("error: handleInfoSize is too large\n");
 			return(NULL);
 		}
-		PSYSTEM_HANDLE_INFORMATION temp_p = (PSYSTEM_HANDLE_INFORMATION)realloc(handleInfo, handleInfoSize);
+		PSYSTEM_HANDLE_INFORMATION temp_p = (PSYSTEM_HANDLE_INFORMATION)realloc(HandleInfo, HandleInfoSize);
 		if (temp_p)
-			handleInfo = temp_p;
+			HandleInfo = temp_p;
 		else
 			return(NULL);  // system mem is insufficient
 	}
@@ -177,61 +176,61 @@ PSYSTEM_HANDLE_INFORMATION get_system_handle_info(_NtQuerySystemInformation NtQu
 	// if NtQuerySystemInformation stopped return STATUS_INFO_LENGTH_MISMATCH
 	if (!NT_SUCCESS(status))
 	{
-		free(handleInfo);
+		free(HandleInfo);
 		printf("error: NtQuerySystemInformation function failed!\n");
 		return(NULL);
 	}
 
-	return(handleInfo);
+	return(HandleInfo);
 }
 
 HANDLE DuplicateFileHandle(SYSTEM_HANDLE handle)
 {
-	HANDLE dupHandle = NULL;
-	HANDLE processHandle = NULL;
+	HANDLE DupHandle = NULL;
+	HANDLE ProcessHandle = NULL;
 	
 
 	/* Open a handle to the process associated with the handle */
-	if (!(processHandle = OpenProcess(
+	if (!(ProcessHandle = OpenProcess(
 		PROCESS_DUP_HANDLE,
 		FALSE,
 		handle.ProcessId)))
 	{
 		//  open a handle to the process failed
-		// printf("error: can't open a handle the process: %d\n", handle.ProcessId);
+		printf("error: can't open a handle the process: %d\n", handle.ProcessId);
 		return(NULL);
 	}
 
 	// duplicate the system handle for further get file name, etc.
 	if (!DuplicateHandle(
-		processHandle,
+		ProcessHandle,
 		(HANDLE)handle.Handle,
 		GetCurrentProcess(),
-		&dupHandle,
+		&DupHandle,
 		0,
 		TRUE,
 		DUPLICATE_SAME_ACCESS))
 	{
 		// Will fail if not a regular file; just skip it. maybe a mutex lock
-		CloseHandle(processHandle);
-		CloseHandle(dupHandle);
+		CloseHandle(ProcessHandle);
+		CloseHandle(DupHandle);
 		return(NULL);
 	}
 
 	// Note: also this is supposed to hang, hence why we do it in here.
-	if (GetFileType(dupHandle) != FILE_TYPE_DISK) {
+	if (GetFileType(DupHandle) != FILE_TYPE_DISK) {
 		SetLastError(0);
 		// printf("error: it's not a regular file.\n");
 		return(NULL);
 	}
-	return(dupHandle);
+	return(DupHandle);
 }
 
 
 PWSTR GetFileNameFromHandle(HANDLE handle, _NtQueryObject NtQueryObject)
 {
-	DWORD fileName_bufferSize = MAX_PATH; // buffer for file name info
-	POBJECT_NAME_INFORMATION fileNameInfo = (POBJECT_NAME_INFORMATION)malloc(fileName_bufferSize);
+	DWORD FileNameBufferSize = MAX_PATH; // buffer for file name info
+	POBJECT_NAME_INFORMATION FileNameInfo = (POBJECT_NAME_INFORMATION)malloc(FileNameBufferSize);
 	NTSTATUS status;
 	ULONG attempts = 8;
 	// A loop is needed because the I/O subsystem likes to give us the
@@ -240,17 +239,17 @@ PWSTR GetFileNameFromHandle(HANDLE handle, _NtQueryObject NtQueryObject)
 		status = NtQueryObject(
 			handle,
 			ObjectNameInformation,
-			fileNameInfo,
-			fileName_bufferSize,
-			&fileName_bufferSize
+			FileNameInfo,
+			FileNameBufferSize,
+			&FileNameBufferSize
 		);
 		if (status == STATUS_BUFFER_OVERFLOW ||
 			status == STATUS_INFO_LENGTH_MISMATCH ||
 			status == STATUS_BUFFER_TOO_SMALL)
 		{
-			free(fileNameInfo);
-			fileNameInfo = (POBJECT_NAME_INFORMATION)malloc(fileName_bufferSize);
-			if (fileNameInfo == NULL) {
+			free(FileNameInfo);
+			FileNameInfo = (POBJECT_NAME_INFORMATION)malloc(FileNameBufferSize);
+			if (FileNameInfo == NULL) {
 				printf("error: filename buffer alloc error.\n");
 				break;
 			}
@@ -261,13 +260,13 @@ PWSTR GetFileNameFromHandle(HANDLE handle, _NtQueryObject NtQueryObject)
 	} while (--attempts);
 
 	if (!NT_SUCCESS(status)) {
-		free(fileNameInfo);
-		fileNameInfo = NULL;
+		free(FileNameInfo);
+		FileNameInfo = NULL;
 		return(NULL);
 	}
 	else {
-		if (fileNameInfo) {
-			return(fileNameInfo->Name.Buffer);
+		if (FileNameInfo) {
+			return(FileNameInfo->Name.Buffer);
 		}
 		else
 		{
@@ -278,8 +277,7 @@ PWSTR GetFileNameFromHandle(HANDLE handle, _NtQueryObject NtQueryObject)
 
 BOOL ConvertFileName(PWSTR pszFilename)
 {
-	BOOL bSuccess = FALSE;
-	ULONG BUFSIZE = 512;
+	const ULONG BUFSIZE = 512;
 	// Translate path with device name to drive letters.
 	TCHAR *szTemp = (TCHAR*)malloc(BUFSIZE*sizeof(*szTemp));
 	if (szTemp) {
@@ -330,8 +328,7 @@ BOOL ConvertFileName(PWSTR pszFilename)
 			while (*p++);
 		} while (!bFound && *p); // end of string
 	}
-	bSuccess = TRUE;
 
 	_tprintf(TEXT("File name is %s\n"), pszFilename);
-	return(bSuccess);
+	return(TRUE);
 }
