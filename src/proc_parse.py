@@ -33,15 +33,8 @@ class MyThreadParseProc(Thread):
         self.start()
 
     def run(self):
-        # skip the first useless information
-        for _ in range(5):
-            self.str_reader.readline()
-
         # read handle.exe output stream send to proc_parser get process info
         for line in iter(self.str_reader.readline, b''):
-            print(line)
-            if line == b'No matching handles found.\r\r\n':
-                break
             # stop code condition
             self.mutex.acquire()
             try:
@@ -99,7 +92,7 @@ class CollectProcess(QObject):
         self.process_tree = {"proc_names": {}, "open_files": {}}  # process name dict, process open file dict
         # for windows, create a process without a console
 
-        self.process = Popen([global_seting.exec_file, file_path],
+        self.process = Popen([global_seting.exec_file, "-startswith", file_path],
                              stdout=PIPE, bufsize=1, close_fds=ON_POSIX, creationflags=0x00000008)
         str_reader = self.process.stdout  # get string stream from handle.exe
         # create a thread to parse the buffer string
@@ -134,21 +127,49 @@ def proc_parser(process_str: bytes):
     :return: list(process_name+pid, file_name)
     """
     process_str = process_str.decode('utf-8')  # decode binary to string
-    process_str = process_str.split(": ")  # split string
+    process_str = process_str.split("\t")  # split string
 
-    pid_pos = process_str[0].rfind("pid")  # find pid string position
-    process_name = process_str[0][:pid_pos].strip()  # get process name
+    pid = process_str[1][4:-2].strip()  # get pid
+    print(pid)
+    file_name = process_str[0][5:]  # get open file name
+    print(file_name)
 
-    type_pos = process_str[1].rfind("type")  # find type string position
-    pid = process_str[1][:type_pos].strip()  # get pid
-
-    file_name = process_str[3].strip()
-
+    # try get process name and exec path
     proc = psutil.Process(int(pid))
+    process_name = ""
     proc_exe = ""
     try:
+        process_name = proc.name()
         proc_exe = proc.exe()
     except:
         pass
 
     return list([process_name, pid, file_name, proc_exe])
+
+# def proc_parser(process_str: bytes):
+#     """
+#     split process_str to process_name pid and file_name
+#     Example string
+#     jcef_helper.exe    pid: 25532  type: File           308: E:\\Program Files\\percent.pak
+#     :param process_str:
+#     :return: list(process_name+pid, file_name)
+#     """
+#     process_str = process_str.decode('utf-8')  # decode binary to string
+#     process_str = process_str.split(": ")  # split string
+#
+#     pid_pos = process_str[0].rfind("pid")  # find pid string position
+#     process_name = process_str[0][:pid_pos].strip()  # get process name
+#
+#     type_pos = process_str[1].rfind("type")  # find type string position
+#     pid = process_str[1][:type_pos].strip()  # get pid
+#
+#     file_name = process_str[3].strip()
+#
+#     proc = psutil.Process(int(pid))
+#     proc_exe = ""
+#     try:
+#         proc_exe = proc.exe()
+#     except:
+#         pass
+#
+#     return list([process_name, pid, file_name, proc_exe])

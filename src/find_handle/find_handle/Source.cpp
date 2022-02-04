@@ -25,7 +25,7 @@ BOOL StartsWith(wchar_t* pre, wchar_t* str);
 
 int wmain(int argc, wchar_t* argv[])
 {
-	setlocale(LC_CTYPE, "");
+	setlocale(LC_ALL, ".UTF8");
 	SEARCH_STATUS SearchStatus = NoSearch;
 	wchar_t* SearchString = NULL;
 
