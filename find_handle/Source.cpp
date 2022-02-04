@@ -7,7 +7,11 @@
 #include <psapi.h>
 #include <strsafe.h>
 
-#define VERBOSE 1
+#ifdef DEBUG
+# define DEBUG_PRINT(x) printf x
+#else
+# define DEBUG_PRINT(x) do {} while (0)
+#endif
 
 _NtQuerySystemInformation GetNtQuerySystemInformationHandle(void);
 _NtQueryObject GetNtQueryObjectHandle(void);
@@ -36,14 +40,11 @@ int wmain()
 	PSYSTEM_HANDLE_INFORMATION HandleInfo = GetSystemHandleInfo(NtQuerySystemInformation);
 	if (HandleInfo == NULL)
 	{
-		printf("error: get system handle info failed.\n");
+		DEBUG_PRINT("error: get system handle info failed.\n");
 		return(-1);
 	}
 	else {
-		if (VERBOSE)
-		{
-			printf("Success: get system handle info.\n");
-		}
+		DEBUG_PRINT("Success: get system handle info.\n");
 	}
 
 	// enumerate all handles
@@ -88,20 +89,17 @@ _NtQuerySystemInformation GetNtQuerySystemInformationHandle(void)
 
 		if (NtQuerySystemInformation == NULL)
 		{
-			printf("error: get NtQuerySystemInformation function handle failed.\n");
+			DEBUG_PRINT("error: get NtQuerySystemInformation function handle failed.\n");
 			return(NULL);
 		}
 		else {
-			if (VERBOSE)
-			{
-				printf("Success: get NtQuerySystemInformation function handle.\n");
-				return NtQuerySystemInformation;
-			}
+			DEBUG_PRINT("Success: get NtQuerySystemInformation function handle.\n");
+			return NtQuerySystemInformation;
 		}
 	}
 	else {
 		// load ntdll failed, exit program.
-		printf("error: ntdll.dll load failed!\n");
+		DEBUG_PRINT("error: ntdll.dll load failed!\n");
 		return(NULL);
 	}
 }
@@ -118,21 +116,18 @@ _NtQueryObject GetNtQueryObjectHandle(void)
 
 		if (NtQueryObject == NULL)
 		{
-			printf("error: get NtQueryObject function handle failed.\n");
+			DEBUG_PRINT("error: get NtQueryObject function handle failed.\n");
 			return(NULL);
 		}
 		else {
-			if (VERBOSE)
-			{
-				printf("Success: get NtQueryObject function handle.\n");
-				return NtQueryObject;
-			}
+			DEBUG_PRINT("Success: get NtQueryObject function handle.\n");
+			return NtQueryObject;
 		}
 		return NtQueryObject;
 	}
 	else {
 		// load ntdll failed, exit program.
-		printf("error: ntdll.dll load failed!\n");
+		DEBUG_PRINT("error: ntdll.dll load failed!\n");
 		return(NULL);
 	}
 }
@@ -163,7 +158,7 @@ PSYSTEM_HANDLE_INFORMATION GetSystemHandleInfo(_NtQuerySystemInformation NtQuery
 		if (HandleInfoSize > 0x10000000)
 		{
 			// handleInfoSize is too large
-			printf("error: handleInfoSize is too large\n");
+			DEBUG_PRINT("error: handleInfoSize is too large\n");
 			return(NULL);
 		}
 		PSYSTEM_HANDLE_INFORMATION temp_p = (PSYSTEM_HANDLE_INFORMATION)realloc(HandleInfo, HandleInfoSize);
@@ -177,7 +172,7 @@ PSYSTEM_HANDLE_INFORMATION GetSystemHandleInfo(_NtQuerySystemInformation NtQuery
 	if (!NT_SUCCESS(status))
 	{
 		free(HandleInfo);
-		printf("error: NtQuerySystemInformation function failed!\n");
+		DEBUG_PRINT("error: NtQuerySystemInformation function failed!\n");
 		return(NULL);
 	}
 
@@ -197,7 +192,7 @@ HANDLE DuplicateFileHandle(SYSTEM_HANDLE handle)
 		handle.ProcessId)))
 	{
 		//  open a handle to the process failed
-		printf("error: can't open a handle the process: %d\n", handle.ProcessId);
+		DEBUG_PRINT("error: can't open a handle the process: %d\n", handle.ProcessId);
 		return(NULL);
 	}
 
@@ -250,7 +245,7 @@ PWSTR GetFileNameFromHandle(HANDLE handle, _NtQueryObject NtQueryObject)
 			free(FileNameInfo);
 			FileNameInfo = (POBJECT_NAME_INFORMATION)malloc(FileNameBufferSize);
 			if (FileNameInfo == NULL) {
-				printf("error: filename buffer alloc error.\n");
+				DEBUG_PRINT("error: filename buffer alloc error.\n");
 				break;
 			}
 		}
