@@ -10,11 +10,11 @@ def resource_path(relative_path):
 
 """
 build command:
-pyinstaller.exe --windowed --clean --onefile 
-    --add-data="res/main.ui;./res" 
-    --add-data="bin/find_handle.exe;./bin" 
-    --add-data="res/icon.ico;./res" 
-    --icon=icon.ico 
+pyinstaller.exe --windowed --clean --onefile `
+    --add-data="res/main.ui;./res" `
+    --add-data="bin/find_handle.exe;./bin" `
+    --add-data="res/icon.ico;./res" `
+    --icon=res/icon.ico `
     src/main.py
 """
 DEBUG = True
