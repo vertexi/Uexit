@@ -14,10 +14,7 @@ except ImportError:
     pass
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-
-    # make icon
-    app.setWindowIcon(QIcon(QPixmap(global_seting.icon_file)))
-
+    app = QApplication(sys.argv)  # initialize qt app
+    app.setWindowIcon(QIcon(QPixmap(global_seting.icon_file)))  # make icon
     main_window = MainWindow()  # initialize main window
     app.exec_()  # run

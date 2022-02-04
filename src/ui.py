@@ -1,4 +1,5 @@
 from PyQt5 import uic
+from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, \
     QPushButton, QLineEdit, QHBoxLayout, QWidget, QHeaderView, QStatusBar
 from PyQt5.QtCore import Qt
@@ -23,6 +24,9 @@ class MainWindow(QMainWindow):
         # Initialize my customized classes
         self.collect_proc = None
         self.kill_task = Tasks()
+
+        # resize window
+        self.auto_adj_size()
 
         # load ui file
         with open(global_seting.ui_file) as ui_file:
@@ -71,6 +75,10 @@ class MainWindow(QMainWindow):
 
         # show app
         self.show()
+
+    def auto_adj_size(self):
+        qrect = QGuiApplication.primaryScreen().geometry()
+        self.resize(qrect.width() / 5, qrect.height() / 5)
 
     def start_collect_process(self, file_path: str):
         if self.collect_proc:
