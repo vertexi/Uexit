@@ -130,9 +130,7 @@ def proc_parser(process_str: bytes):
     process_str = process_str.split("\t")  # split string
 
     pid = process_str[1][4:-2].strip()  # get pid
-    print(pid)
     file_name = process_str[0][5:]  # get open file name
-    print(file_name)
 
     # try get process name and exec path
     proc = psutil.Process(int(pid))
