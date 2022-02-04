@@ -52,6 +52,14 @@ to invoke this funciton, just use NtQuerySystemInformation(...).
 */
 
 // NtQuerySystemInformation's SystemInformationClass parameter definition
+
+typedef enum _SEARCH_STATUS
+{
+    NoSearch,
+    SearchContain,
+    SearchStarstWith
+}SEARCH_STATUS;
+
 typedef enum _SYSTEM_INFORMATION_CLASS
 {
     SystemBasicInformation = 0x00,

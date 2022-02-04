@@ -21,10 +21,29 @@ PSYSTEM_HANDLE_INFORMATION GetSystemHandleInfo(_NtQuerySystemInformation NtQuery
 HANDLE DuplicateFileHandle(SYSTEM_HANDLE handle);
 PWSTR GetFileNameFromHandle(HANDLE handle, _NtQueryObject NtQueryObject);
 BOOL ConvertFileName(PWSTR pszFilename);
+BOOL StartsWith(wchar_t* pre, wchar_t* str);
 
-int wmain()
+int wmain(int argc, wchar_t* argv[])
 {
 	setlocale(LC_CTYPE, "");
+	SEARCH_STATUS SearchStatus = NoSearch;
+	wchar_t* SearchString = NULL;
+
+	if (argc == 1) {
+		return(0);
+	}
+	else if (!wcscmp(argv[1], L"-contain")) {
+		SearchStatus = SearchContain;
+		SearchString = argv[2];
+	}
+	else if (!wcscmp(argv[1], L"-startswith")) {
+		SearchStatus = SearchStarstWith;
+		SearchString = argv[2];
+	}
+	else {
+		return(0);
+	}
+	
 	// get NtQuerySystemInformation function from ntdll
 	_NtQuerySystemInformation NtQuerySystemInformation = GetNtQuerySystemInformationHandle();
 	if (NtQuerySystemInformation == NULL)
@@ -54,7 +73,6 @@ int wmain()
 	{
 		SYSTEM_HANDLE handle = HandleInfo->Handles[i];
 		
-		// 21924
 		if (handle.ProcessId) {
 			HANDLE DupHandle = DuplicateFileHandle(handle);
 			PWSTR filename = NULL;
@@ -72,8 +90,22 @@ int wmain()
 				continue;
 			}
 			if (filename) {
-				_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
-				continue;
+				if (SearchStatus == NoSearch) {
+					_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
+					continue;
+				}
+				else if (SearchStatus == SearchContain) {
+					if (wcsstr(filename, SearchString)) {
+						_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
+					}
+					continue;
+				}
+				else if (SearchStatus == SearchStarstWith) {
+					if (StartsWith(SearchString, filename)) {
+						_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
+					}
+					continue;
+				}
 			}
 		}
 	}
@@ -328,4 +360,9 @@ BOOL ConvertFileName(PWSTR pszFilename)
 		} while (!bFound && *p); // end of string
 	}
 	return(TRUE);
+}
+
+BOOL StartsWith(wchar_t *pre, wchar_t *str)
+{
+	return _tcsnicmp(pre, str, _tcslen(pre)) == 0;
 }
