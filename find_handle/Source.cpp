@@ -7,10 +7,12 @@
 #include <psapi.h>
 #include <strsafe.h>
 
+#define DEBUG
+
 #ifdef DEBUG
-# define DEBUG_PRINT(x) printf x
+#define DEBUG_PRINT(...) do{ fprintf( stderr, __VA_ARGS__ ); } while( false )
 #else
-# define DEBUG_PRINT(x) do {} while (0)
+#define DEBUG_PRINT(...) do{ } while ( false )
 #endif
 
 _NtQuerySystemInformation GetNtQuerySystemInformationHandle(void);
@@ -52,7 +54,8 @@ int wmain()
 	{
 		SYSTEM_HANDLE handle = HandleInfo->Handles[i];
 		
-		if (handle.ProcessId == 21924) {
+		// 21924
+		if (handle.ProcessId) {
 			HANDLE DupHandle = DuplicateFileHandle(handle);
 			PWSTR filename = NULL;
 			BOOL status = FALSE;
