@@ -8,6 +8,14 @@ typedef NTSTATUS(NTAPI* _NtQuerySystemInformation)(
 	ULONG SystemInformationLength,
 	PULONG ReturnLength
 	);
+
+typedef NTSTATUS(NTAPI* _NtQueryObject)(
+    HANDLE ObjectHandle,
+    ULONG ObjectInformationClass,
+    PVOID ObjectInformation,
+    ULONG ObjectInformationLength,
+    PULONG ReturnLength
+    );
 /*
 NTAPI refrence in winnt.h, it's macro definition of __stdcall. __stdcall is a calling conventioncallee
 clean the stack
@@ -259,16 +267,24 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     MaxSystemInfoClass = 0xD2
 }SYSTEM_INFORMATION_CLASS;
 
-#define STATUS_INFO_LENGTH_MISMATCH  0xc0000004
+#define STATUS_INFO_LENGTH_MISMATCH ((NTSTATUS)0xC0000004L)
+#define STATUS_BUFFER_TOO_SMALL ((NTSTATUS)0xC0000023L)
+#define STATUS_ACCESS_DENIED ((NTSTATUS)0xC0000022L)
+#define STATUS_NOT_FOUND ((NTSTATUS)0xC0000225L)
+#define STATUS_BUFFER_OVERFLOW ((NTSTATUS)0x80000005L)
+
+#define ObjectBasicInformation 0
+#define ObjectNameInformation 1
+#define ObjectTypeInformation 2
 
 typedef struct _SYSTEM_HANDLE
 {
-    ULONG ProcessId;
-    BYTE ObjectTypeNumber;
-    BYTE Flags;
-    USHORT Handle;
-    PVOID Object;
-    ACCESS_MASK GrantedAccess;
+    ULONG ProcessId;  // Process identifier 
+    BYTE ObjectTypeNumber;  // The type of object opened
+    BYTE Flags;  // Handle attribute flags
+    USHORT Handle;  // Handle value, which uniquely identifies a handle among the handles opened by the process
+    PVOID Object;  // This is the address of the EPROCESS corresponding to the handle
+    ACCESS_MASK GrantedAccess;  // Access permissions of the handle object
 } SYSTEM_HANDLE, * PSYSTEM_HANDLE;
 
 typedef struct _SYSTEM_HANDLE_INFORMATION
@@ -276,3 +292,15 @@ typedef struct _SYSTEM_HANDLE_INFORMATION
     ULONG HandleCount;
     SYSTEM_HANDLE Handles[1];  // basically it's just a pointer, size don't matter
 } SYSTEM_HANDLE_INFORMATION, * PSYSTEM_HANDLE_INFORMATION;
+
+typedef struct _UNICODE_STRING
+{
+    USHORT Length;
+    USHORT MaximumLength;
+    PWSTR Buffer;
+} UNICODE_STRING, * PUNICODE_STRING;
+
+typedef struct _OBJECT_NAME_INFORMATION
+{
+    UNICODE_STRING Name;
+} OBJECT_NAME_INFORMATION, * POBJECT_NAME_INFORMATION;
