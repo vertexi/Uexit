@@ -12,13 +12,15 @@ class Tasks(QObject):
     def kill(self, pid: str):
         attempt = 20
         pid_num = int(pid)
+        process = psutil.Process(pid_num)
+        name = process.name()
         while psutil.pid_exists(pid_num):
             try:
-                psutil.Process(pid_num).kill()
+                process.kill()
             except psutil.NoSuchProcess:
                 break
             attempt = attempt - 1
             if attempt < 0:
-                self.send_kill_status_message.emit(f"failed: kill PID:{pid_num} process failed.")
+                self.send_kill_status_message.emit(f"failed: kill {name}({pid}) process failed.")
                 return
-        self.send_kill_status_message.emit(f"success: kill PID:{pid_num} process finished.")
+        self.send_kill_status_message.emit(f"success: kill {name}({pid}) process finished.")

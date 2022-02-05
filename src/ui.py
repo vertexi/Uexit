@@ -1,7 +1,7 @@
 from PyQt5 import uic
-from PyQt5.QtGui import QGuiApplication
+from PyQt5.QtGui import QGuiApplication, QFontMetrics
 from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, \
-    QPushButton, QLineEdit, QHBoxLayout, QWidget, QHeaderView, QStatusBar
+    QPushButton, QLineEdit, QHBoxLayout, QWidget, QHeaderView, QStatusBar, QPlainTextEdit
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtCore import pyqtSignal, pyqtBoundSignal
@@ -16,7 +16,7 @@ class MainWindow(QMainWindow):
     verticalLayout_2: QVBoxLayout
     kill_button: QPushButton
     refresh_pushbutton: QPushButton
-    status_bar: QStatusBar
+    status_edit: QPlainTextEdit
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -25,12 +25,12 @@ class MainWindow(QMainWindow):
         self.collect_proc = None
         self.kill_task = Tasks()
 
-        # resize window
-        self.auto_adj_size()
-
         # load ui file
         with open(global_seting.ui_file) as ui_file:
             uic.loadUi(ui_file, self)
+
+        # resize window
+        self.auto_adj_size()
 
         # get widgets
         self.centralwidget = self.findChild(QWidget, "centralwidget")
@@ -40,7 +40,7 @@ class MainWindow(QMainWindow):
         self.tmp_file_path_input = self.findChild(QLineEdit, "file_path_input")
         self.horizontalLayout_2 = self.findChild(QHBoxLayout, "horizontalLayout_2")
         self.refresh_pushbutton = self.findChild(QPushButton, "refresh_pushbutton")
-        self.status_bar = self.findChild(QStatusBar, "statusBar")
+        self.status_edit = self.findChild(QPlainTextEdit, "statusEdit")
 
         # replace template widgets to my customized tree widgets
         self.process_tree = MyTreeWidget()
@@ -64,6 +64,8 @@ class MainWindow(QMainWindow):
 
         LineEditDragFileInjector(self.file_path_input)
 
+        self.set_status_edit_height(1)
+
         # connect signals and slots
         self.kill_button.clicked.connect(self.process_tree.send_to_kill)
         self.process_tree.start_kill_signal.connect(self.kill_task.kill)
@@ -73,7 +75,7 @@ class MainWindow(QMainWindow):
         self.refresh_pushbutton.clicked.connect(self.process_tree.clear_me)
         self.file_path_input.editingFinished.connect(self.file_path_input.send_to_start_proc)
 
-        self.kill_task.send_kill_status_message.connect(self.status_bar.showMessage)
+        self.kill_task.send_kill_status_message.connect(self.append_status_message)
 
         # show app
         self.show()
@@ -87,9 +89,23 @@ class MainWindow(QMainWindow):
             self.collect_proc.kill_exist_process()
         self.collect_proc = CollectProcess(file_path)  # initialize the process collector
         self.collect_proc.update_tree_signal.connect(self.process_tree.build_process_tree)
-        self.collect_proc.complete_signal.connect(self.status_bar.showMessage)
+        self.collect_proc.complete_signal.connect(self.append_status_message)
         self.collect_proc.start_process()
-        self.status_bar.showMessage("Searching...")
+        self.append_status_message("Searching...")
+
+    def append_status_message(self, message: str):
+        self.status_edit.appendPlainText(message)
+        max_pos = self.status_edit.verticalScrollBar().maximum()
+        self.status_edit.verticalScrollBar().setValue(max_pos-1)
+
+    def set_status_edit_height(self, n_rows: int):
+        p_doc = self.status_edit.document()
+        font_metrics = QFontMetrics(p_doc.defaultFont())
+        margins = self.status_edit.contentsMargins()
+        n_height = font_metrics.lineSpacing() * n_rows\
+                   + (p_doc.documentMargin() + self.status_edit.frameWidth()) * 2\
+                   + margins.top() + margins.bottom()
+        self.status_edit.setFixedHeight(n_height)
 
 
 class MyTreeWidget(QTreeWidget):
