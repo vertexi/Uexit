@@ -45,7 +45,7 @@ class MyThreadParseProc(Thread):
             # parse the input stream
             parsed = proc_parser(line)
             self.update_tree_signal.emit(parsed)
-        self.complete_signal.emit()
+        self.complete_signal.emit("Search end")
 
 
 class MyThreadFindExe(Thread):
@@ -82,7 +82,7 @@ class CollectProcess(QObject):
     update_tree_signal: pyqtBoundSignal
     update_tree_signal = pyqtSignal(list)
     complete_signal: pyqtBoundSignal
-    complete_signal = pyqtSignal()
+    complete_signal = pyqtSignal(str)
 
     process: Popen
     proc_parse_proc: MyThreadParseProc

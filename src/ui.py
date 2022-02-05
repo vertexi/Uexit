@@ -56,7 +56,6 @@ class MainWindow(QMainWindow):
 
         self.process_tree.setObjectName("process_tree")
         self.process_tree.setColumnCount(2)
-        # self.process_tree.setHeaderLabel("Process_name(PID)")
         self.process_tree.setHeaderLabels(["Process_name(PID)", "Exec"])
 
         self.file_path_input.setText("")
@@ -67,12 +66,14 @@ class MainWindow(QMainWindow):
 
         # connect signals and slots
         self.kill_button.clicked.connect(self.process_tree.send_to_kill)
+        self.process_tree.start_kill_signal.connect(self.kill_task.kill)
 
         self.refresh_pushbutton.clicked.connect(self.file_path_input.send_to_start_proc)
         self.file_path_input.start_proc_signal.connect(self.start_collect_process)
         self.refresh_pushbutton.clicked.connect(self.process_tree.clear_me)
         self.file_path_input.editingFinished.connect(self.file_path_input.send_to_start_proc)
-        self.process_tree.start_kill_signal.connect(self.kill_task.kill)
+
+        self.kill_task.send_kill_status_message.connect(self.status_bar.showMessage)
 
         # show app
         self.show()
@@ -86,12 +87,9 @@ class MainWindow(QMainWindow):
             self.collect_proc.kill_exist_process()
         self.collect_proc = CollectProcess(file_path)  # initialize the process collector
         self.collect_proc.update_tree_signal.connect(self.process_tree.build_process_tree)
-        self.collect_proc.complete_signal.connect(self.complete_message)
+        self.collect_proc.complete_signal.connect(self.status_bar.showMessage)
         self.collect_proc.start_process()
         self.status_bar.showMessage("Searching...")
-
-    def complete_message(self):
-        self.status_bar.showMessage("Search end")
 
 
 class MyTreeWidget(QTreeWidget):
