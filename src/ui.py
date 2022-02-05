@@ -1,14 +1,133 @@
 from PyQt5 import uic
 from PyQt5.QtGui import QGuiApplication, QFontMetrics
 from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, \
-    QPushButton, QLineEdit, QHBoxLayout, QWidget, QHeaderView, QStatusBar, QPlainTextEdit
+    QPushButton, QLineEdit, QHBoxLayout, QWidget, QHeaderView, QPlainTextEdit
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtCore import pyqtSignal, pyqtBoundSignal
 from proc_parse import CollectProcess
-from task import Tasks
-import os
 import global_seting
+
+
+class MyTreeWidgetItem(QTreeWidgetItem):
+    datum: str
+
+    def __init__(self, *args, **kwargs):
+        super(MyTreeWidgetItem, self).__init__(*args, **kwargs)
+        self.datum = ""
+
+    def add_data(self, data):
+        self.datum = data
+
+
+class MyTreeWidget(QTreeWidget):
+    start_kill_signal: pyqtBoundSignal
+    start_kill_signal = pyqtSignal(list)
+
+    def __init__(self, *args, **kwargs):
+        super(MyTreeWidget, self).__init__(*args, **kwargs)
+        self.process_tree = {}  # pid:tree_itm
+        self.header().setStretchLastSection(False)
+        self.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.setSortingEnabled(True)
+        self.sortByColumn(0, Qt.AscendingOrder)
+
+    def clear_me(self):
+        self.clear()
+        self.process_tree = {}  # pid:tree_itm
+
+    def build_process_tree(self, list_: list):
+        # list_[0] process_name list_[1] pid list_[2] open file path
+        if list_[1] in self.process_tree:
+            # create follow child file path item
+            path_item = MyTreeWidgetItem()
+            path_item.setText(0, list_[2])
+            path_item.setFlags(path_item.flags() | Qt.ItemIsUserCheckable)
+            path_item.setCheckState(0, Qt.Unchecked)
+            self.process_tree[list_[1]].insertChild(0, path_item)
+        else:
+            # create process_name(PID) top item
+            tree_item = MyTreeWidgetItem(self)
+            tree_item.setText(0, list_[0] + "(" + list_[1] + ")")
+            tree_item.setText(1, list_[3])
+            tree_item.add_data(list_[1])
+            tree_item.setFlags(tree_item.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable)
+
+            # create first child file path item
+            path_item = MyTreeWidgetItem(tree_item)
+            path_item.setText(0, list_[2])
+            if list_[2] == "":
+                path_item.setHidden(True)
+            path_item.setFlags(path_item.flags() | Qt.ItemIsUserCheckable)
+            path_item.setCheckState(0, Qt.Unchecked)
+
+            self.process_tree[list_[1]] = tree_item
+
+    def send_to_kill(self):
+        kill_list = []
+        for i in range(self.topLevelItemCount()):
+            if int(self.topLevelItem(i).checkState(0)) > 0:
+                kill_list.append(self.topLevelItem(i))
+        self.start_kill_signal.emit(kill_list)
+
+    def remove_item(self, item: MyTreeWidgetItem):
+        parent = item.parent()
+        if parent:
+            parent.removeChild(item)
+        else:
+            self.takeTopLevelItem(self.indexOfTopLevelItem(item))
+
+
+class MyLineEdit(QLineEdit):
+    start_proc_signal: pyqtBoundSignal
+    start_proc_signal = pyqtSignal(str)
+    textChanged: pyqtBoundSignal
+
+    def __init__(self, *args, **kwargs):
+        super(MyLineEdit, self).__init__(*args, **kwargs)
+        self.textChanged.connect(self.on_text_changed)
+
+    def on_text_changed(self):
+        self.setText(self.text().replace("/", "\\"))
+
+    def send_to_start_proc(self):
+        self.start_proc_signal.emit(str(self.text()))
+
+
+class LineEditDragFileInjector:
+    def __init__(self, line_edit, auto_inject=True):
+        self.line_edit = line_edit
+        if auto_inject:
+            self.inject_drag_file()
+
+    def inject_drag_file(self):
+        self.line_edit.setDragEnabled(True)
+        self.line_edit.dragEnterEvent = self.drag_enter_event
+        self.line_edit.dragMoveEvent = self.drag_move_event
+        self.line_edit.dropEvent = self.drop_event
+
+    def drag_enter_event(self, event):
+        data = event.mimeData()
+        urls = data.urls()
+        if urls and urls[0].scheme() == 'file':
+            event.acceptProposedAction()
+
+    def drag_move_event(self, event):
+        data = event.mimeData()
+        urls = data.urls()
+        if urls and urls[0].scheme() == 'file':
+            event.acceptProposedAction()
+
+    def drop_event(self, event):
+        data = event.mimeData()
+        urls = data.urls()
+        if urls and urls[0].scheme() == 'file':
+            # for some reason, this doubles up the intro slash
+            filepath = str(urls[0].path())[1:]
+            self.line_edit.setText(filepath)
+
+
+from task import Tasks
 
 
 class MainWindow(QMainWindow):
@@ -17,6 +136,7 @@ class MainWindow(QMainWindow):
     kill_button: QPushButton
     refresh_pushbutton: QPushButton
     status_edit: QPlainTextEdit
+    file_path_input: MyLineEdit
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -76,6 +196,7 @@ class MainWindow(QMainWindow):
         self.file_path_input.editingFinished.connect(self.file_path_input.send_to_start_proc)
 
         self.kill_task.send_kill_status_message.connect(self.append_status_message)
+        self.kill_task.clean_killed_tree_item.connect(self.process_tree.remove_item)
 
         # show app
         self.show()
@@ -96,119 +217,13 @@ class MainWindow(QMainWindow):
     def append_status_message(self, message: str):
         self.status_edit.appendPlainText(message)
         max_pos = self.status_edit.verticalScrollBar().maximum()
-        self.status_edit.verticalScrollBar().setValue(max_pos-1)
+        self.status_edit.verticalScrollBar().setValue(max_pos - 1)
 
     def set_status_edit_height(self, n_rows: int):
         p_doc = self.status_edit.document()
         font_metrics = QFontMetrics(p_doc.defaultFont())
         margins = self.status_edit.contentsMargins()
-        n_height = font_metrics.lineSpacing() * n_rows\
-                   + (p_doc.documentMargin() + self.status_edit.frameWidth()) * 2\
-                   + margins.top() + margins.bottom()
+        n_height = (font_metrics.lineSpacing() * n_rows
+                    + (p_doc.documentMargin() + self.status_edit.frameWidth()) * 2
+                    + margins.top() + margins.bottom())
         self.status_edit.setFixedHeight(n_height)
-
-
-class MyTreeWidget(QTreeWidget):
-    start_kill_signal: pyqtBoundSignal
-    start_kill_signal = pyqtSignal(str)
-
-    def __init__(self, *args, **kwargs):
-        super(MyTreeWidget, self).__init__(*args, **kwargs)
-        self.process_tree = {}  # pid:tree_itm
-        self.header().setStretchLastSection(False)
-        self.header().setSectionResizeMode(QHeaderView.ResizeToContents)
-        self.setSortingEnabled(True)
-        self.sortByColumn(0, Qt.AscendingOrder)
-
-    def clear_me(self):
-        self.clear()
-        self.process_tree = {}  # pid:tree_itm
-
-    def build_process_tree(self, list_: list):
-        # list_[0] process_name list_[1] pid list_[2] open file path
-        if list_[1] in self.process_tree:
-            # create follow child file path item
-            path_item = MyTreeWidgetItem()
-            path_item.setText(0, list_[2])
-            path_item.setFlags(path_item.flags() | Qt.ItemIsUserCheckable)
-            path_item.setCheckState(0, Qt.Unchecked)
-            self.process_tree[list_[1]].insertChild(0, path_item)
-        else:
-            # create process_name(PID) top item
-            tree_item = MyTreeWidgetItem(self)
-            tree_item.setText(0, list_[0] + "(" + list_[1] + ")")
-            tree_item.setText(1, list_[3])
-            tree_item.add_data(list_[1])
-            tree_item.setFlags(tree_item.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable)
-
-            # create first child file path item
-            path_item = MyTreeWidgetItem(tree_item)
-            path_item.setText(0, list_[2])
-            if list_[2] == "":
-                path_item.setHidden(True)
-            path_item.setFlags(path_item.flags() | Qt.ItemIsUserCheckable)
-            path_item.setCheckState(0, Qt.Unchecked)
-
-            self.process_tree[list_[1]] = tree_item
-
-    def send_to_kill(self):
-        for i in range(self.topLevelItemCount()):
-            if int(self.topLevelItem(i).checkState(0)) > 0:
-                self.start_kill_signal.emit(self.topLevelItem(i).datum)
-
-
-class MyTreeWidgetItem(QTreeWidgetItem):
-    def __init__(self, *args, **kwargs):
-        super(MyTreeWidgetItem, self).__init__(*args, **kwargs)
-        self.datum = None
-
-    def add_data(self, data):
-        self.datum = data
-
-
-class MyLineEdit(QLineEdit):
-    start_proc_signal: pyqtBoundSignal
-    start_proc_signal = pyqtSignal(str)
-
-    def __init__(self, *args, **kwargs):
-        super(MyLineEdit, self).__init__(*args, **kwargs)
-        self.textChanged.connect(self.on_text_changed)
-
-    def on_text_changed(self):
-        self.setText(self.text().replace("/", "\\"))
-
-    def send_to_start_proc(self):
-        self.start_proc_signal.emit(str(self.text()))
-
-
-class LineEditDragFileInjector:
-    def __init__(self, line_edit, auto_inject=True):
-        self.line_edit = line_edit
-        if auto_inject:
-            self.inject_dragFile()
-
-    def inject_dragFile(self):
-        self.line_edit.setDragEnabled(True)
-        self.line_edit.dragEnterEvent = self.drag_enter_event
-        self.line_edit.dragMoveEvent = self.drag_move_event
-        self.line_edit.dropEvent = self.drop_event
-
-    def drag_enter_event(self, event):
-        data = event.mimeData()
-        urls = data.urls()
-        if urls and urls[0].scheme() == 'file':
-            event.acceptProposedAction()
-
-    def drag_move_event(self, event):
-        data = event.mimeData()
-        urls = data.urls()
-        if urls and urls[0].scheme() == 'file':
-            event.acceptProposedAction()
-
-    def drop_event(self, event):
-        data = event.mimeData()
-        urls = data.urls()
-        if urls and urls[0].scheme() == 'file':
-            # for some reason, this doubles up the intro slash
-            filepath = str(urls[0].path())[1:]
-            self.line_edit.setText(filepath)
