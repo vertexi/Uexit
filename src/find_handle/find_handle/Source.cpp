@@ -19,7 +19,7 @@ _NtQuerySystemInformation GetNtQuerySystemInformationHandle(void);
 _NtQueryObject GetNtQueryObjectHandle(void);
 PSYSTEM_HANDLE_INFORMATION GetSystemHandleInfo(_NtQuerySystemInformation NtQuerySystemInformation);
 HANDLE DuplicateFileHandle(SYSTEM_HANDLE handle);
-PWSTR GetFileNameFromHandle(HANDLE handle, _NtQueryObject NtQueryObject);
+POBJECT_NAME_INFORMATION GetFileNameFromHandle(HANDLE handle, _NtQueryObject NtQueryObject);
 BOOL ConvertFileName(PWSTR pszFilename);
 BOOL StartsWith(wchar_t* pre, wchar_t* str);
 
@@ -30,7 +30,7 @@ int wmain(int argc, wchar_t* argv[])
 	wchar_t* SearchString = NULL;
 
 	if (argc == 1) {
-		return(0);
+		SearchStatus = NoSearch;
 	}
 	else if (!wcscmp(argv[1], L"-contain")) {
 		SearchStatus = SearchContain;
@@ -75,41 +75,43 @@ int wmain(int argc, wchar_t* argv[])
 		
 		if (handle.ProcessId) {
 			HANDLE DupHandle = DuplicateFileHandle(handle);
+			POBJECT_NAME_INFORMATION FileNameInfo = NULL;
 			PWSTR filename = NULL;
-			BOOL status = FALSE;
+			BOOL ConvertStatus = FALSE;
 			if (DupHandle) {
-				filename = GetFileNameFromHandle(DupHandle, NtQueryObject);
+				FileNameInfo = GetFileNameFromHandle(DupHandle, NtQueryObject);
+				filename = FileNameInfo->Name.Buffer;
+				CloseHandle(DupHandle);
 			}
 			else {
 				continue;
 			}
-			if (filename) {
-				status = ConvertFileName(filename);
+			if (FileNameInfo) {
+				ConvertStatus = ConvertFileName(filename);
 			}
 			else {
 				continue;
 			}
-			if (filename) {
+			if (ConvertStatus) {
 				if (SearchStatus == NoSearch) {
 					_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
-					continue;
 				}
 				else if (SearchStatus == SearchContain) {
 					if (wcsstr(filename, SearchString)) {
 						_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
 					}
-					continue;
 				}
 				else if (SearchStatus == SearchStarstWith) {
 					if (StartsWith(SearchString, filename)) {
 						_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
 					}
-					continue;
 				}
 			}
+			free(FileNameInfo);
 		}
 	}
 
+	free(HandleInfo);
 	return(0);
 }
 
@@ -219,7 +221,6 @@ HANDLE DuplicateFileHandle(SYSTEM_HANDLE handle)
 {
 	HANDLE DupHandle = NULL;
 	HANDLE ProcessHandle = NULL;
-	
 
 	/* Open a handle to the process associated with the handle */
 	if (!(ProcessHandle = OpenProcess(
@@ -243,6 +244,7 @@ HANDLE DuplicateFileHandle(SYSTEM_HANDLE handle)
 		DUPLICATE_SAME_ACCESS))
 	{
 		// Will fail if not a regular file; just skip it. maybe a mutex lock
+		DEBUG_PRINT("error: it's not a regular file.\n");
 		CloseHandle(ProcessHandle);
 		CloseHandle(DupHandle);
 		return(NULL);
@@ -251,14 +253,18 @@ HANDLE DuplicateFileHandle(SYSTEM_HANDLE handle)
 	// Note: also this is supposed to hang, hence why we do it in here.
 	if (GetFileType(DupHandle) != FILE_TYPE_DISK) {
 		SetLastError(0);
-		// printf("error: it's not a regular file.\n");
+		DEBUG_PRINT("error: it's not a FILE_TYPE_DISK handle.\n");
+		CloseHandle(ProcessHandle);
+		CloseHandle(DupHandle);
 		return(NULL);
 	}
+
+	CloseHandle(ProcessHandle);
 	return(DupHandle);
 }
 
 
-PWSTR GetFileNameFromHandle(HANDLE handle, _NtQueryObject NtQueryObject)
+POBJECT_NAME_INFORMATION GetFileNameFromHandle(HANDLE handle, _NtQueryObject NtQueryObject)
 {
 	DWORD FileNameBufferSize = MAX_PATH; // buffer for file name info
 	POBJECT_NAME_INFORMATION FileNameInfo = (POBJECT_NAME_INFORMATION)malloc(FileNameBufferSize);
@@ -292,17 +298,13 @@ PWSTR GetFileNameFromHandle(HANDLE handle, _NtQueryObject NtQueryObject)
 
 	if (!NT_SUCCESS(status)) {
 		free(FileNameInfo);
-		FileNameInfo = NULL;
 		return(NULL);
 	}
 	else {
-		if (FileNameInfo) {
-			return(FileNameInfo->Name.Buffer);
-		}
+		if (FileNameInfo)
+			return(FileNameInfo);
 		else
-		{
 			return(NULL);
-		}
 	}
 }
 
