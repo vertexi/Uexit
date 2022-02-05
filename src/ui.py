@@ -117,6 +117,8 @@ class MyTreeWidget(QTreeWidget):
         self.process_tree = {}  # pid:tree_itm
         self.header().setStretchLastSection(False)
         self.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.setSortingEnabled(True)
+        self.sortByColumn(0, Qt.AscendingOrder)
 
     def clear_me(self):
         self.clear()
