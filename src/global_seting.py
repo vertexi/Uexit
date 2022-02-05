@@ -4,7 +4,7 @@ import sys
 
 def resource_path(relative_path):
     bundle_dir = getattr(sys, '_MEIPASS', os.path.abspath(os.path.dirname(__file__)))
-    file_path = os.path.abspath(os.path.join(bundle_dir,relative_path))
+    file_path = os.path.abspath(os.path.join(bundle_dir, relative_path))
     return file_path
 
 

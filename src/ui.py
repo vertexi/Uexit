@@ -1,9 +1,9 @@
 from PyQt5 import uic
-from PyQt5.QtGui import QGuiApplication, QFontMetrics, QDesktopServices
+from PyQt5.QtGui import QGuiApplication, QFontMetrics
 from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, \
     QPushButton, QLineEdit, QHBoxLayout, QWidget, QHeaderView, QPlainTextEdit, QFileDialog, \
     QDialog, QStackedWidget, QListView, QAction, QMenu
-from PyQt5.QtCore import Qt, QCoreApplication, pyqtSignal, pyqtBoundSignal, QUrl
+from PyQt5.QtCore import Qt, QCoreApplication, pyqtSignal, pyqtBoundSignal
 from proc_parse import CollectProcess
 import global_seting
 import subprocess

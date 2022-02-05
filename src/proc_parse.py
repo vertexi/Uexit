@@ -134,7 +134,7 @@ def proc_parser(process_str: bytes):
     process_name = ""
     proc_exe = ""
 
-    # try get process name and exec path
+    # try to get process name and exec path
     try:
         proc = psutil.Process(int(pid))
         process_name = proc.name()
