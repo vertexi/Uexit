@@ -71,6 +71,7 @@ class MainWindow(QMainWindow):
         self.refresh_pushbutton.clicked.connect(self.file_path_input.send_to_start_proc)
         self.file_path_input.start_proc_signal.connect(self.start_collect_process)
         self.refresh_pushbutton.clicked.connect(self.process_tree.clear_me)
+        self.file_path_input.editingFinished.connect(self.file_path_input.send_to_start_proc)
         self.process_tree.start_kill_signal.connect(self.kill_task.kill)
 
         # show app
