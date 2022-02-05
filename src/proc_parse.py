@@ -131,12 +131,12 @@ def proc_parser(process_str: bytes):
 
     pid = process_str[1][4:-2].strip()  # get pid
     file_name = process_str[0][5:]  # get open file name
-
-    # try get process name and exec path
-    proc = psutil.Process(int(pid))
     process_name = ""
     proc_exe = ""
+
+    # try get process name and exec path
     try:
+        proc = psutil.Process(int(pid))
         process_name = proc.name()
         proc_exe = proc.exe()
     except:
