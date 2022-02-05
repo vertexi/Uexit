@@ -1,8 +1,9 @@
 from PyQt5 import uic
 from PyQt5.QtGui import QGuiApplication, QFontMetrics
 from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, \
-    QPushButton, QLineEdit, QHBoxLayout, QWidget, QHeaderView, QPlainTextEdit
-from PyQt5.QtCore import Qt
+    QPushButton, QLineEdit, QHBoxLayout, QWidget, QHeaderView, QPlainTextEdit, QFileDialog, \
+    QDialog, QStackedWidget, QListView
+from PyQt5.QtCore import Qt, QFileInfo
 from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtCore import pyqtSignal, pyqtBoundSignal
 from proc_parse import CollectProcess
@@ -94,6 +95,51 @@ class MyLineEdit(QLineEdit):
         self.start_proc_signal.emit(str(self.text()))
 
 
+class MyQFileDialog(QFileDialog):
+    selected_filename: str
+
+    def __init__(self, parent=None, caption='', directory='',
+                        filter='', initialFilter='', options=None):
+        super(MyQFileDialog, self).__init__(parent, caption=caption, directory=directory, filter=filter)
+        self.setFileMode(self.ExistingFile)
+        if options:
+            self.setOptions(options)
+        self.setOption(self.DontUseNativeDialog, True)
+        if filter and initialFilter:
+            self.selectNameFilter(initialFilter)
+
+        # by default, if a directory is opened in file listing mode,
+        # QFileDialog.accept() shows the contents of that directory, but we
+        # need to be able to "open" directories as we can do with files, so we
+        # just override accept() with the default QDialog implementation which
+        # will just return exec_()
+
+        self.accept = lambda: QDialog.accept(self)
+
+        # there are many item views in a non-native dialog, but the ones displaying
+        # the actual contents are created inside a QStackedWidget; they are a
+        # QTreeView and a QListView, and the tree is only used when the
+        # viewMode is set to QFileDialog.Details, which is not this case
+        self.stackedWidget = self.findChild(QStackedWidget)
+        self.view = self.stackedWidget.findChild(QListView)
+        self.view.selectionModel().selectionChanged.connect(self.update_text)
+        self.lineEdit = self.findChild(QLineEdit)
+
+        # clear the line edit contents whenever the current directory changes
+        self.directoryEntered.connect(lambda: self.lineEdit.setText(''))
+
+    def update_text(self):
+        # update the contents of the line edit widget with the selected files
+        selected = []
+        for index in self.view.selectionModel().selectedRows():
+            selected.append('"{}"'.format(index.data()))
+        self.lineEdit.setText(' '.join(selected))
+
+    def get_selected_files(self):
+        self.exec_()
+        return self.selectedFiles()
+
+
 class LineEditDragFileInjector:
     def __init__(self, line_edit, auto_inject=True):
         self.line_edit = line_edit
@@ -161,6 +207,8 @@ class MainWindow(QMainWindow):
         self.horizontalLayout_2 = self.findChild(QHBoxLayout, "horizontalLayout_2")
         self.refresh_pushbutton = self.findChild(QPushButton, "refresh_pushbutton")
         self.status_edit = self.findChild(QPlainTextEdit, "statusEdit")
+        self.file_dialog_button = self.findChild(QPushButton, "file_dialog_button")
+        self.file_dialog = MyQFileDialog(self, "Select file to search handles", "", "")
 
         # replace template widgets to my customized tree widgets
         self.process_tree = MyTreeWidget()
@@ -198,12 +246,14 @@ class MainWindow(QMainWindow):
         self.kill_task.send_kill_status_message.connect(self.append_status_message)
         self.kill_task.clean_killed_tree_item.connect(self.process_tree.remove_item)
 
+        self.file_dialog_button.clicked.connect(self.file_dialog_button_on_clicked)
+
         # show app
         self.show()
 
     def auto_adj_size(self):
-        qrect = QGuiApplication.primaryScreen().geometry()
-        self.resize(qrect.width() / 5, qrect.height() / 5)
+        q_rect = QGuiApplication.primaryScreen().geometry()
+        self.resize(q_rect.width() / 5, q_rect.height() / 5)
 
     def start_collect_process(self, file_path: str):
         if self.collect_proc:
@@ -227,3 +277,6 @@ class MainWindow(QMainWindow):
                     + (p_doc.documentMargin() + self.status_edit.frameWidth()) * 2
                     + margins.top() + margins.bottom())
         self.status_edit.setFixedHeight(n_height)
+
+    def file_dialog_button_on_clicked(self):
+        self.file_path_input.setText(self.file_dialog.get_selected_files()[0])
