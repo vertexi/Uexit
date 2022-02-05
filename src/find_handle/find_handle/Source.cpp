@@ -7,6 +7,10 @@
 #include <psapi.h>
 #include <strsafe.h>
 
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
 // #define DEBUG
 
 #ifdef DEBUG
@@ -25,6 +29,7 @@ BOOL StartsWith(wchar_t* pre, wchar_t* str);
 
 int wmain(int argc, wchar_t* argv[])
 {
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	setlocale(LC_ALL, ".UTF8");
 	SEARCH_STATUS SearchStatus = NoSearch;
 	wchar_t* SearchString = NULL;
@@ -308,19 +313,14 @@ POBJECT_NAME_INFORMATION GetFileNameFromHandle(HANDLE handle, _NtQueryObject NtQ
 	}
 }
 
+#define CONVERT_BUFSIZE 512
 BOOL ConvertFileName(PWSTR pszFilename)
 {
-	const ULONG BUFSIZE = 512;
 	// Translate path with device name to drive letters.
-	TCHAR *szTemp = (TCHAR*)malloc(BUFSIZE*sizeof(*szTemp));
-	if (szTemp) {
-		szTemp[0] = '\0';
-	}
-	else {
-		return(FALSE);
-	}
+	TCHAR szTemp[CONVERT_BUFSIZE];
+	szTemp[0] = '\0';
 	
-	if (GetLogicalDriveStrings(BUFSIZE - 1, szTemp))
+	if (GetLogicalDriveStrings(CONVERT_BUFSIZE - 1, szTemp))
 	{
 		TCHAR szName[MAX_PATH];
 		TCHAR szDrive[3] = TEXT(" :");
