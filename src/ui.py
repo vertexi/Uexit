@@ -1,13 +1,12 @@
 from PyQt5 import uic
-from PyQt5.QtGui import QGuiApplication, QFontMetrics
+from PyQt5.QtGui import QGuiApplication, QFontMetrics, QDesktopServices
 from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, \
     QPushButton, QLineEdit, QHBoxLayout, QWidget, QHeaderView, QPlainTextEdit, QFileDialog, \
-    QDialog, QStackedWidget, QListView
-from PyQt5.QtCore import Qt
-from PyQt5.QtCore import QCoreApplication
-from PyQt5.QtCore import pyqtSignal, pyqtBoundSignal
+    QDialog, QStackedWidget, QListView, QAction, QMenu
+from PyQt5.QtCore import Qt, QCoreApplication, pyqtSignal, pyqtBoundSignal, QUrl
 from proc_parse import CollectProcess
 import global_seting
+import subprocess
 
 
 class MyTreeWidgetItem(QTreeWidgetItem):
@@ -28,14 +27,20 @@ class MyTreeWidget(QTreeWidget):
     def __init__(self, *args, **kwargs):
         super(MyTreeWidget, self).__init__(*args, **kwargs)
         self.process_tree = {}  # pid:tree_itm
+        self.top_items = []
         self.header().setStretchLastSection(False)
         self.header().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.setSortingEnabled(True)
         self.sortByColumn(0, Qt.AscendingOrder)
 
+        # add context menu
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self._show_context_menu)
+
     def clear_me(self):
         self.clear()
         self.process_tree = {}  # pid:tree_itm
+        self.top_items = []
 
     def build_process_tree(self, list_: list):
         # list_[0] process_name list_[1] pid list_[2] open file path
@@ -63,6 +68,7 @@ class MyTreeWidget(QTreeWidget):
             path_item.setCheckState(0, Qt.Unchecked)
 
             self.process_tree[list_[1]] = tree_item
+            self.top_items.append(tree_item)
 
     def send_to_kill(self):
         kill_list = []
@@ -77,6 +83,22 @@ class MyTreeWidget(QTreeWidget):
             parent.removeChild(item)
         else:
             self.takeTopLevelItem(self.indexOfTopLevelItem(item))
+
+    # the function to display context menu
+    def _show_context_menu(self, position):
+        open_file_in_explorer = QAction("Reveal in Explorer")
+        open_file_in_explorer.triggered.connect(self.open_file_in_explorer)
+        menu = QMenu(self)
+        menu.addAction(open_file_in_explorer)
+        menu.exec_(self.mapToGlobal(position))
+
+    # the action executed when menu is clicked
+    def open_file_in_explorer(self):
+        if self.currentItem() in self.top_items:
+            file_path = self.currentItem().text(1)
+        else:
+            file_path = self.currentItem().text(0)
+        subprocess.run(f'explorer /select,"{file_path}"')
 
 
 class MyLineEdit(QLineEdit):
