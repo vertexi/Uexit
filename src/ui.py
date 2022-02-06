@@ -1,5 +1,5 @@
 from PyQt5 import uic
-from PyQt5.QtGui import QGuiApplication, QFontMetrics
+from PyQt5.QtGui import QGuiApplication, QFontMetrics, QColor, QPalette
 from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, \
     QPushButton, QLineEdit, QHBoxLayout, QWidget, QHeaderView, QPlainTextEdit, QFileDialog, \
     QDialog, QStackedWidget, QListView, QAction, QMenu, QComboBox
@@ -261,9 +261,10 @@ class MainWindow(QMainWindow):
         self.process_tree.start_kill_signal.connect(self.kill_task.kill)
 
         self.refresh_pushbutton.clicked.connect(self.send_to_start_proc)
-        self.start_proc_signal.connect(self.start_collect_process)
         self.refresh_pushbutton.clicked.connect(self.process_tree.clear_me)
-        self.file_path_input.editingFinished.connect(self.send_to_start_proc)
+        self.file_path_input.returnPressed.connect(self.send_to_start_proc)
+        self.file_path_input.returnPressed.connect(self.process_tree.clear_me)
+        self.start_proc_signal.connect(self.start_collect_process)
 
         self.kill_task.send_kill_status_message.connect(self.append_status_message)
         self.kill_task.clean_killed_tree_item.connect(self.process_tree.remove_item)
@@ -289,7 +290,7 @@ class MainWindow(QMainWindow):
     def append_status_message(self, message: str):
         self.status_edit.appendPlainText(message)
         max_pos = self.status_edit.verticalScrollBar().maximum()
-        self.status_edit.verticalScrollBar().setValue(max_pos - 1)
+        self.status_edit.verticalScrollBar().setValue(max_pos)
 
     def set_status_edit_height(self, n_rows: int):
         p_doc = self.status_edit.document()
@@ -298,7 +299,10 @@ class MainWindow(QMainWindow):
         n_height = (font_metrics.lineSpacing() * n_rows
                     + (p_doc.documentMargin() + self.status_edit.frameWidth()) * 2
                     + margins.top() + margins.bottom())
-        self.status_edit.setFixedHeight(n_height)
+        self.status_edit.setFixedHeight(n_height+30)
+        palette = self.status_edit.palette()
+        palette.setColor(QPalette.Base, QColor(240, 240, 240, 255))
+        self.status_edit.setPalette(palette)
 
     def file_dialog_button_on_clicked(self):
         self.file_path_input.setText(self.file_dialog.get_selected_files()[0])

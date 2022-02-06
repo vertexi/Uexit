@@ -56,9 +56,6 @@
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
        <widget class="QTreeWidget" name="process_tree">
-        <property name="horizontalScrollBarPolicy">
-         <enum>Qt::ScrollBarAlwaysOn</enum>
-        </property>
         <attribute name="headerCascadingSectionResizes">
          <bool>false</bool>
         </attribute>
@@ -86,20 +83,20 @@
       <property name="maximumSize">
        <size>
         <width>16777215</width>
-        <height>30</height>
+        <height>40</height>
        </size>
       </property>
       <property name="font">
        <font>
         <family>Segoe UI</family>
-        <pointsize>9</pointsize>
+        <pointsize>7</pointsize>
        </font>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(240, 240, 240);</string>
       </property>
       <property name="frameShape">
        <enum>QFrame::NoFrame</enum>
+      </property>
+      <property name="lineWrapMode">
+       <enum>QPlainTextEdit::NoWrap</enum>
       </property>
       <property name="readOnly">
        <bool>true</bool>

@@ -16,8 +16,13 @@ class Tasks(QObject):
         for tree_widget_item in tree_widget_item_list:
             attempt = 20
             pid_num = int(tree_widget_item.datum)
-            process = psutil.Process(pid_num)
-            name = process.name()
+            name = ""
+            try:
+                process = psutil.Process(pid_num)
+                name = process.name()
+            except Exception as e:
+                self.send_kill_status_message.emit(f"failed: kill {name}({pid_num}) process failed.{e}")
+                return
             while psutil.pid_exists(pid_num):
                 try:
                     process.kill()
