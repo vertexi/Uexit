@@ -56,6 +56,8 @@ to invoke this funciton, just use NtQuerySystemInformation(...).
 typedef enum _SEARCH_STATUS
 {
     NoSearch,
+    SearchContain_insensitive,
+    SearchStarstWith_insensitive,
     SearchContain,
     SearchStarstWith
 }SEARCH_STATUS;

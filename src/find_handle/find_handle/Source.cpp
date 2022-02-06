@@ -41,12 +41,20 @@ int wmain(int argc, wchar_t* argv[])
 		SearchStatus = NoSearch;
 	}
 	else if (!wcscmp(argv[1], L"-contain")) {
-		SearchStatus = SearchContain;
+		SearchStatus = SearchContain_insensitive;
 		SearchString = argv[2];
+		if (argc == 4 && !wcscmp(argv[2], L"-case")) {
+			SearchStatus = SearchContain;
+			SearchString = argv[3];
+		}
 	}
 	else if (!wcscmp(argv[1], L"-startswith")) {
-		SearchStatus = SearchStarstWith;
+		SearchStatus = SearchStarstWith_insensitive;
 		SearchString = argv[2];
+		if (argc == 4 && !wcscmp(argv[2], L"-case")) {
+			SearchStatus = SearchStarstWith;
+			SearchString = argv[3];
+		}
 	}
 	else {
 		return(0);
@@ -104,13 +112,23 @@ int wmain(int argc, wchar_t* argv[])
 				if (SearchStatus == NoSearch) {
 					_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
 				}
-				else if (SearchStatus == SearchContain) {
+				else if (SearchStatus == SearchContain_insensitive) {
 					if (Contain_insensitive(SearchString, filename)) {
 						_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
 					}
 				}
-				else if (SearchStatus == SearchStarstWith) {
+				else if (SearchStatus == SearchStarstWith_insensitive) {
 					if (StartsWith_insensitive(SearchString, filename)) {
+						_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
+					}
+				}
+				else if (SearchStatus == SearchContain) {
+					if (Contain(SearchString, filename)) {
+						_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
+					}
+				}
+				else if (SearchStatus == SearchStarstWith) {
+					if (StartsWith(SearchString, filename)) {
 						_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
 					}
 				}
