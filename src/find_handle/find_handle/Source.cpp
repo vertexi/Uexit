@@ -26,6 +26,9 @@ HANDLE DuplicateFileHandle(SYSTEM_HANDLE handle);
 POBJECT_NAME_INFORMATION GetFileNameFromHandle(HANDLE handle, _NtQueryObject NtQueryObject);
 BOOL ConvertFileName(PWSTR pszFilename);
 BOOL StartsWith(wchar_t* pre, wchar_t* str);
+BOOL Contain(wchar_t* pre, wchar_t* str);
+BOOL StartsWith_insensitive(wchar_t* pre, wchar_t* str);
+BOOL Contain_insensitive(wchar_t* pre, wchar_t* str);
 
 int wmain(int argc, wchar_t* argv[])
 {
@@ -102,12 +105,12 @@ int wmain(int argc, wchar_t* argv[])
 					_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
 				}
 				else if (SearchStatus == SearchContain) {
-					if (wcsstr(filename, SearchString)) {
+					if (Contain_insensitive(SearchString, filename)) {
 						_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
 					}
 				}
 				else if (SearchStatus == SearchStarstWith) {
-					if (StartsWith(SearchString, filename)) {
+					if (StartsWith_insensitive(SearchString, filename)) {
 						_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
 					}
 				}
@@ -364,7 +367,28 @@ BOOL ConvertFileName(PWSTR pszFilename)
 	return(TRUE);
 }
 
-BOOL StartsWith(wchar_t *pre, wchar_t *str)
+BOOL StartsWith(wchar_t* pre, wchar_t* str)
+{
+	return _tcsncmp(pre, str, _tcslen(pre)) == 0;
+}
+
+BOOL StartsWith_insensitive(wchar_t *pre, wchar_t *str)
 {
 	return _tcsnicmp(pre, str, _tcslen(pre)) == 0;
 }
+
+BOOL Contain(wchar_t* pre, wchar_t* str)
+{
+	return wcsstr(str, pre) != 0;
+}
+
+BOOL Contain_insensitive(wchar_t* pre, wchar_t* str)
+{
+	wchar_t* pre_copy = _wcsdup(pre); // make two copies
+	wchar_t* str_copy = _wcsdup(str);
+
+	_wcslwr_s(pre_copy, wcslen(pre_copy) + 1);
+	_wcslwr_s(str_copy, wcslen(str_copy) + 1);
+	return wcsstr(str_copy, pre_copy) != 0;
+}
+
