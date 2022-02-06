@@ -18,6 +18,9 @@
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_2">
       <item>
+       <widget class="QComboBox" name="search_status"/>
+      </item>
+      <item>
        <widget class="QLineEdit" name="file_path_input">
         <property name="text">
          <string/>

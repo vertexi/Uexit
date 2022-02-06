@@ -5,6 +5,7 @@
 - [ ] close handle
 - [ ] file icon
 - [ ] kill process tree
-- [ ] select search type
+- [x] select search type
+- [ ] case sensitive
 - [x] after kill fast refresh(status bar)
 - [x] file path enter finish input

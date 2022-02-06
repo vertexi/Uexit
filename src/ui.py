@@ -2,7 +2,7 @@ from PyQt5 import uic
 from PyQt5.QtGui import QGuiApplication, QFontMetrics
 from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, \
     QPushButton, QLineEdit, QHBoxLayout, QWidget, QHeaderView, QPlainTextEdit, QFileDialog, \
-    QDialog, QStackedWidget, QListView, QAction, QMenu
+    QDialog, QStackedWidget, QListView, QAction, QMenu, QComboBox
 from PyQt5.QtCore import Qt, QCoreApplication, pyqtSignal, pyqtBoundSignal
 from proc_parse import CollectProcess
 import global_seting
@@ -102,8 +102,6 @@ class MyTreeWidget(QTreeWidget):
 
 
 class MyLineEdit(QLineEdit):
-    start_proc_signal: pyqtBoundSignal
-    start_proc_signal = pyqtSignal(str)
     textChanged: pyqtBoundSignal
 
     def __init__(self, *args, **kwargs):
@@ -112,9 +110,6 @@ class MyLineEdit(QLineEdit):
 
     def on_text_changed(self):
         self.setText(self.text().replace("/", "\\"))
-
-    def send_to_start_proc(self):
-        self.start_proc_signal.emit(str(self.text()))
 
 
 class MyQFileDialog(QFileDialog):
@@ -204,6 +199,10 @@ class MainWindow(QMainWindow):
     refresh_pushbutton: QPushButton
     status_edit: QPlainTextEdit
     file_path_input: MyLineEdit
+    search_status: QComboBox
+
+    start_proc_signal: pyqtBoundSignal
+    start_proc_signal = pyqtSignal(str, str)
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -229,13 +228,15 @@ class MainWindow(QMainWindow):
         self.refresh_pushbutton = self.findChild(QPushButton, "refresh_pushbutton")
         self.status_edit = self.findChild(QPlainTextEdit, "statusEdit")
         self.file_dialog_button = self.findChild(QPushButton, "file_dialog_button")
-        self.file_dialog = MyQFileDialog(self, "Select file to search handles", "", "")
+        self.search_status = self.findChild(QComboBox, "search_status")
 
         # replace template widgets to my customized tree widgets
         self.process_tree = MyTreeWidget()
         self.verticalLayout_2.replaceWidget(self.temp_tree, self.process_tree)
         self.file_path_input = MyLineEdit(self.central_widget)
         self.horizontalLayout_2.replaceWidget(self.tmp_file_path_input, self.file_path_input)
+
+        self.file_dialog = MyQFileDialog(self, "Select file to search handles", "", "")
 
         # delete the old tree widgets
         self.verticalLayout_2.removeWidget(self.temp_tree)
@@ -252,17 +253,17 @@ class MainWindow(QMainWindow):
         self.file_path_input.setPlaceholderText(QCoreApplication.translate("MainWindow", "Drop or input file name"))
 
         LineEditDragFileInjector(self.file_path_input)
-
         self.set_status_edit_height(1)
+        self.search_status_combo_box_init()
 
         # connect signals and slots
         self.kill_button.clicked.connect(self.process_tree.send_to_kill)
         self.process_tree.start_kill_signal.connect(self.kill_task.kill)
 
-        self.refresh_pushbutton.clicked.connect(self.file_path_input.send_to_start_proc)
-        self.file_path_input.start_proc_signal.connect(self.start_collect_process)
+        self.refresh_pushbutton.clicked.connect(self.send_to_start_proc)
+        self.start_proc_signal.connect(self.start_collect_process)
         self.refresh_pushbutton.clicked.connect(self.process_tree.clear_me)
-        self.file_path_input.editingFinished.connect(self.file_path_input.send_to_start_proc)
+        self.file_path_input.editingFinished.connect(self.send_to_start_proc)
 
         self.kill_task.send_kill_status_message.connect(self.append_status_message)
         self.kill_task.clean_killed_tree_item.connect(self.process_tree.remove_item)
@@ -276,10 +277,10 @@ class MainWindow(QMainWindow):
         q_rect = QGuiApplication.primaryScreen().geometry()
         self.resize(q_rect.width() / 5, q_rect.height() / 5)
 
-    def start_collect_process(self, file_path: str):
+    def start_collect_process(self, file_path: str, search_status: str):
         if self.collect_proc:
             self.collect_proc.kill_exist_process()
-        self.collect_proc = CollectProcess(file_path)  # initialize the process collector
+        self.collect_proc = CollectProcess(file_path, search_status)  # initialize the process collector
         self.collect_proc.update_tree_signal.connect(self.process_tree.build_process_tree)
         self.collect_proc.complete_signal.connect(self.append_status_message)
         self.collect_proc.start_process()
@@ -301,3 +302,10 @@ class MainWindow(QMainWindow):
 
     def file_dialog_button_on_clicked(self):
         self.file_path_input.setText(self.file_dialog.get_selected_files()[0])
+
+    def search_status_combo_box_init(self):
+        self.search_status.addItem("Starts with", "-startswith")
+        self.search_status.addItem("Contain", "-contain")
+
+    def send_to_start_proc(self):
+        self.start_proc_signal.emit(str(self.file_path_input.text()), str(self.search_status.currentData()))

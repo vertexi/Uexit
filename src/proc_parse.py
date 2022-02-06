@@ -87,12 +87,12 @@ class CollectProcess(QObject):
     process: Popen
     proc_parse_proc: MyThreadParseProc
 
-    def __init__(self, file_path: str):
+    def __init__(self, file_path: str, search_status: str):
         super().__init__()
         self.process_tree = {"proc_names": {}, "open_files": {}}  # process name dict, process open file dict
         # for windows, create a process without a console
-
-        self.process = Popen([global_seting.exec_file, "-startswith", file_path],
+        print(f"search_status:{search_status}\tfile_path:{file_path}")
+        self.process = Popen([global_seting.exec_file, search_status, file_path],
                              stdout=PIPE, bufsize=1, close_fds=ON_POSIX, creationflags=0x00000008)
         str_reader = self.process.stdout  # get string stream from handle.exe
         # create a thread to parse the buffer string
