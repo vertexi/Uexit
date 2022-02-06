@@ -1,9 +1,11 @@
 #include <stdio.h>
+#include <io.h>
 #include <windows.h>
 #include "Source.h"
 #include <locale.h>
 #include <tchar.h>
 #include <string.h>
+#include <fcntl.h>
 #include <psapi.h>
 #include <strsafe.h>
 
@@ -33,6 +35,9 @@ BOOL Contain_insensitive(wchar_t* pre, wchar_t* str);
 int wmain(int argc, wchar_t* argv[])
 {
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	SetConsoleOutputCP(65001);
+	//SetConsoleOutputCP(CP_UTF8); //Unicode (UTF-8)
+	//_setmode(_fileno(stdout), _O_U8TEXT); // _O_U16TEXT / _O_WTEXT
 	setlocale(LC_ALL, ".UTF8");
 	SEARCH_STATUS SearchStatus = NoSearch;
 	wchar_t* SearchString = NULL;
@@ -110,26 +115,27 @@ int wmain(int argc, wchar_t* argv[])
 			}
 			if (ConvertStatus) {
 				if (SearchStatus == NoSearch) {
-					_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
+					// _tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
+					wprintf(L"File:%s\tPID:%d\n", filename, handle.ProcessId);
 				}
 				else if (SearchStatus == SearchContain_insensitive) {
 					if (Contain_insensitive(SearchString, filename)) {
-						_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
+						wprintf(L"File:%s\tPID:%d\n", filename, handle.ProcessId);
 					}
 				}
 				else if (SearchStatus == SearchStarstWith_insensitive) {
 					if (StartsWith_insensitive(SearchString, filename)) {
-						_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
+						wprintf(L"File:%s\tPID:%d\n", filename, handle.ProcessId);
 					}
 				}
 				else if (SearchStatus == SearchContain) {
 					if (Contain(SearchString, filename)) {
-						_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
+						wprintf(L"File:%s\tPID:%d\n", filename, handle.ProcessId);
 					}
 				}
 				else if (SearchStatus == SearchStarstWith) {
 					if (StartsWith(SearchString, filename)) {
-						_tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
+						wprintf(L"File:%s\tPID:%d\n", filename, handle.ProcessId);
 					}
 				}
 			}
@@ -338,7 +344,7 @@ POBJECT_NAME_INFORMATION GetFileNameFromHandle(HANDLE handle, _NtQueryObject NtQ
 BOOL ConvertFileName(PWSTR pszFilename)
 {
 	// Translate path with device name to drive letters.
-	TCHAR szTemp[CONVERT_BUFSIZE];
+	TCHAR szTemp[CONVERT_BUFSIZE] = {0};
 	szTemp[0] = '\0';
 	
 	if (GetLogicalDriveStrings(CONVERT_BUFSIZE - 1, szTemp))

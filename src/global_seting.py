@@ -10,7 +10,7 @@ def resource_path(relative_path):
 
 """
 build command:
-pyinstaller.exe --windowed --clean --onefile `
+pyinstaller.exe --windowed --clean --name "Uexit" --onefile `
     --add-data="res/main.ui;./res" `
     --add-data="bin/find_handle.exe;./bin" `
     --add-data="res/icon.ico;./res" `
