@@ -14,6 +14,8 @@ pyinstaller.exe --windowed --clean --name "Uexit" --onefile `
     --add-data="res/main.ui;./res" `
     --add-data="bin/find_handle.exe;./bin" `
     --add-data="res/icon.ico;./res" `
+    --add-data="res/CascadiaMono.ttf;./res" `
+    --add-data="res/simhei.ttf;./res" `
     --icon=res/icon.ico `
     src/main.py
 """
@@ -22,7 +24,11 @@ if DEBUG:
     icon_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'res', 'icon.ico'))
     exec_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', "bin", "find_handle.exe"))
     ui_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'res', 'main.ui'))
+    font_cascadia_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'res', 'CascadiaMono.ttf'))
+    font_simhei_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'res', 'simhei.ttf'))
 else:
     icon_file = resource_path(os.path.join("res", "icon.ico"))
     exec_file = resource_path(os.path.join("bin", "find_handle.exe"))
     ui_file = resource_path(os.path.join("res", "main.ui"))
+    font_cascadia_file = resource_path(os.path.join('res', 'CascadiaMono.ttf'))
+    font_simhei_file = resource_path(os.path.join('res', 'simhei.ttf'))

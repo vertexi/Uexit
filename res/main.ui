@@ -89,7 +89,7 @@
       <property name="font">
        <font>
         <family>Segoe UI</family>
-        <pointsize>7</pointsize>
+        <pointsize>9</pointsize>
        </font>
       </property>
       <property name="frameShape">
