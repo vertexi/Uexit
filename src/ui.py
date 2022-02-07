@@ -1,5 +1,5 @@
 from PyQt5 import uic
-from PyQt5.QtGui import QGuiApplication, QFontMetrics, QColor, QPalette
+from PyQt5.QtGui import QGuiApplication, QFontMetrics, QColor, QPalette, QCloseEvent
 from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, \
     QPushButton, QLineEdit, QHBoxLayout, QWidget, QHeaderView, QPlainTextEdit, QFileDialog, \
     QDialog, QStackedWidget, QListView, QAction, QMenu, QComboBox
@@ -313,3 +313,7 @@ class MainWindow(QMainWindow):
 
     def send_to_start_proc(self):
         self.start_proc_signal.emit(str(self.file_path_input.text()), str(self.search_status.currentData()))
+
+    def closeEvent(self, a0: QCloseEvent) -> None:
+        if self.collect_proc:
+            self.collect_proc.kill_exist_process()

@@ -31,5 +31,5 @@ if __name__ == '__main__':
 
     app.setFont(QFont(font_cascadia+", "+font_simhei))
     main_window = MainWindow()  # initialize main window
-    app.exec_()  # run
 
+    sys.exit(app.exec_())  # run

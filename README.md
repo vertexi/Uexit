@@ -9,4 +9,4 @@
 - [ ] case sensitive
 - [x] after kill fast refresh(status bar)
 - [x] file path enter finish input
-- [ ] font issue
+- [x] font issue
