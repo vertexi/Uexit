@@ -200,9 +200,10 @@ class MainWindow(QMainWindow):
     status_edit: QPlainTextEdit
     file_path_input: MyLineEdit
     search_status: QComboBox
+    case_sensitive_button: QPushButton
 
     start_proc_signal: pyqtBoundSignal
-    start_proc_signal = pyqtSignal(str, str)
+    start_proc_signal = pyqtSignal(list)
 
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -229,6 +230,7 @@ class MainWindow(QMainWindow):
         self.status_edit = self.findChild(QPlainTextEdit, "statusEdit")
         self.file_dialog_button = self.findChild(QPushButton, "file_dialog_button")
         self.search_status = self.findChild(QComboBox, "search_status")
+        self.case_sensitive_button = self.findChild(QPushButton, "case_sensitive_button")
 
         # replace template widgets to my customized tree widgets
         self.process_tree = MyTreeWidget()
@@ -271,6 +273,8 @@ class MainWindow(QMainWindow):
 
         self.file_dialog_button.clicked.connect(self.file_dialog_button_on_clicked)
 
+        self.case_sensitive_button.clicked.connect(self.case_sensitive_toggle)
+
         # show app
         self.show()
 
@@ -278,10 +282,10 @@ class MainWindow(QMainWindow):
         q_rect = QGuiApplication.primaryScreen().geometry()
         self.resize(q_rect.width() / 5, q_rect.height() / 5)
 
-    def start_collect_process(self, file_path: str, search_status: str):
+    def start_collect_process(self, arg_list: list):
         if self.collect_proc:
             self.collect_proc.kill_exist_process()
-        self.collect_proc = CollectProcess(file_path, search_status)  # initialize the process collector
+        self.collect_proc = CollectProcess(arg_list)  # initialize the process collector
         self.collect_proc.update_tree_signal.connect(self.process_tree.build_process_tree)
         self.collect_proc.complete_signal.connect(self.append_status_message)
         self.collect_proc.start_process()
@@ -312,8 +316,24 @@ class MainWindow(QMainWindow):
         self.search_status.addItem("Contain", "-contain")
 
     def send_to_start_proc(self):
-        self.start_proc_signal.emit(str(self.file_path_input.text()), str(self.search_status.currentData()))
+        if self.case_sensitive_button.text() == "a":
+            self.start_proc_signal.emit([str(self.search_status.currentData()),
+                                         str(self.file_path_input.text())])
+        else:
+            self.start_proc_signal.emit([str(self.search_status.currentData()),
+                                         "-case",
+                                         str(self.file_path_input.text())])
 
     def closeEvent(self, a0: QCloseEvent) -> None:
         if self.collect_proc:
             self.collect_proc.kill_exist_process()
+
+    def case_sensitive_toggle(self):
+        # if button is checked
+        if self.case_sensitive_button.isChecked():
+            # setting text to "A"
+            self.case_sensitive_button.setText(QCoreApplication.translate("MainWindow", "A"))
+        # if it is unchecked
+        else:
+            # set background color back to light-grey
+            self.case_sensitive_button.setText(QCoreApplication.translate("MainWindow", "a"))

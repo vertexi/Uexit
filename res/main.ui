@@ -21,6 +21,22 @@
        <widget class="QComboBox" name="search_status"/>
       </item>
       <item>
+       <widget class="QPushButton" name="case_sensitive_button">
+        <property name="maximumSize">
+         <size>
+          <width>20</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>a</string>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QLineEdit" name="file_path_input">
         <property name="text">
          <string/>
@@ -34,7 +50,7 @@
        <widget class="QPushButton" name="file_dialog_button">
         <property name="maximumSize">
          <size>
-          <width>30</width>
+          <width>40</width>
           <height>30</height>
          </size>
         </property>
