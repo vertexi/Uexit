@@ -18,7 +18,11 @@
     <item>
      <layout class="QHBoxLayout" name="horizontalLayout_2">
       <item>
-       <widget class="QComboBox" name="search_status"/>
+       <widget class="QComboBox" name="search_status">
+        <property name="toolTip">
+         <string>search mode</string>
+        </property>
+       </widget>
       </item>
       <item>
        <widget class="QPushButton" name="case_sensitive_button">
@@ -27,6 +31,9 @@
           <width>20</width>
           <height>16777215</height>
          </size>
+        </property>
+        <property name="toolTip">
+         <string>case sensitive toggle</string>
         </property>
         <property name="text">
          <string>a</string>
@@ -53,6 +60,9 @@
           <width>40</width>
           <height>30</height>
          </size>
+        </property>
+        <property name="toolTip">
+         <string>open file or directory</string>
         </property>
         <property name="text">
          <string>...</string>
@@ -89,6 +99,9 @@
     </item>
     <item>
      <widget class="QPushButton" name="kill_pushbutton">
+      <property name="toolTip">
+       <string>kill process</string>
+      </property>
       <property name="text">
        <string>Kill</string>
       </property>
