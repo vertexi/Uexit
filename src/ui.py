@@ -2,8 +2,8 @@ from PyQt5 import uic
 from PyQt5.QtGui import QGuiApplication, QFontMetrics, QColor, QPalette, QCloseEvent
 from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem, QVBoxLayout, \
     QPushButton, QLineEdit, QHBoxLayout, QWidget, QHeaderView, QPlainTextEdit, QFileDialog, \
-    QDialog, QStackedWidget, QListView, QAction, QMenu, QComboBox
-from PyQt5.QtCore import Qt, QCoreApplication, pyqtSignal, pyqtBoundSignal
+    QDialog, QStackedWidget, QListView, QAction, QMenu, QComboBox, QFileIconProvider
+from PyQt5.QtCore import Qt, QCoreApplication, pyqtSignal, pyqtBoundSignal, QFileInfo
 from proc_parse import CollectProcess
 import global_seting
 import subprocess
@@ -21,6 +21,8 @@ class MyTreeWidgetItem(QTreeWidgetItem):
 
 
 class MyTreeWidget(QTreeWidget):
+    iconProvider: QFileIconProvider
+
     start_kill_signal: pyqtBoundSignal
     start_kill_signal = pyqtSignal(list)
 
@@ -37,6 +39,8 @@ class MyTreeWidget(QTreeWidget):
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self._show_context_menu)
 
+        self.icon_provider = QFileIconProvider()
+
     def clear_me(self):
         self.clear()
         self.process_tree = {}  # pid:tree_itm
@@ -50,6 +54,7 @@ class MyTreeWidget(QTreeWidget):
             path_item.setText(0, list_[2])
             path_item.setFlags(path_item.flags() | Qt.ItemIsUserCheckable)
             path_item.setCheckState(0, Qt.Unchecked)
+            path_item.setIcon(0, self.icon_provider.icon(QFileInfo(list_[2])))  # set icon base on the file extension
             self.process_tree[list_[1]].insertChild(0, path_item)
         else:
             # create process_name(PID) top item
