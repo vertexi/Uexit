@@ -34,7 +34,7 @@ BOOL Contain_insensitive(wchar_t* pre, wchar_t* str);
 BOOL CloseFileHandle(SYSTEM_HANDLE handle);
 BOOL LoadDLLfunctions(void);
 void EnumHandlesAndPrint(PSYSTEM_HANDLE_INFORMATION HandleInfo, SEARCH_STATUS SearchStatus, wchar_t* SearchString);
-void EnumHandlesAndClose(PSYSTEM_HANDLE_INFORMATION HandleInfo, SEARCH_STATUS SearchStatus, wchar_t* SearchString, ULONG Pid);
+BOOL EnumHandlesAndClose(PSYSTEM_HANDLE_INFORMATION HandleInfo, SEARCH_STATUS SearchStatus, wchar_t* SearchString, ULONG Pid);
 
 // ntdll functions
 _NtQuerySystemInformation NtQuerySystemInformation = NULL;
@@ -78,7 +78,7 @@ int wmain(int argc, wchar_t* argv[])
         }
     }
     else {
-        return(0);
+        return(1);
     }
     
     // get ntdll funcitons
@@ -102,7 +102,13 @@ int wmain(int argc, wchar_t* argv[])
         EnumHandlesAndPrint(HandleInfo, SearchStatus, SearchString);
     }
     else {
-        EnumHandlesAndClose(HandleInfo, SearchStatus, SearchString, _wtoi(argv[2]));
+        BOOL CloseResult = EnumHandlesAndClose(HandleInfo, SearchStatus, SearchString, _wtoi(argv[2]));
+        if (CloseResult) {
+            return(0);
+        }
+        else {
+            return(1);
+        }
     }
 
     return(0);
@@ -498,7 +504,7 @@ void EnumHandlesAndPrint(PSYSTEM_HANDLE_INFORMATION HandleInfo, SEARCH_STATUS Se
     free(HandleInfo);
 }
 
-void EnumHandlesAndClose(PSYSTEM_HANDLE_INFORMATION HandleInfo, SEARCH_STATUS SearchStatus, wchar_t* SearchString, ULONG Pid)
+BOOL EnumHandlesAndClose(PSYSTEM_HANDLE_INFORMATION HandleInfo, SEARCH_STATUS SearchStatus, wchar_t* SearchString, ULONG Pid)
 {
     // enumerate all handles
     for (ULONG i = 0; i < HandleInfo->HandleCount; i++)
@@ -526,11 +532,17 @@ void EnumHandlesAndClose(PSYSTEM_HANDLE_INFORMATION HandleInfo, SEARCH_STATUS Se
             }
             if (ConvertStatus) {
                 if (wcscmp(SearchString, filename) == 0) {
-                    wprintf(L"File:%s\tPID:%d\n", filename, handle.ProcessId);
+                    if (CloseFileHandle(handle)) {
+                        return(TRUE);
+                    }
+                    else {
+                        return(FALSE);
+                    }
                 }
             }
             free(FileNameInfo);
         }
     }
     free(HandleInfo);
+    return(FALSE);
 }
