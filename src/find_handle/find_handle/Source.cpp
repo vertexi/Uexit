@@ -34,6 +34,7 @@ BOOL Contain_insensitive(wchar_t* pre, wchar_t* str);
 BOOL CloseFileHandle(SYSTEM_HANDLE handle);
 BOOL LoadDLLfunctions(void);
 void EnumHandlesAndPrint(PSYSTEM_HANDLE_INFORMATION HandleInfo, SEARCH_STATUS SearchStatus, wchar_t* SearchString);
+void EnumHandlesAndClose(PSYSTEM_HANDLE_INFORMATION HandleInfo, SEARCH_STATUS SearchStatus, wchar_t* SearchString, ULONG Pid);
 
 // ntdll functions
 _NtQuerySystemInformation NtQuerySystemInformation = NULL;
@@ -55,6 +56,11 @@ int wmain(int argc, wchar_t* argv[])
     if (argc == 1) {
         SearchStatus = NoSearch;
     }
+    else if (argc == 4 && !wcscmp(argv[1], L"-close")) {
+        CloseStatus = TRUE;
+        SearchString = argv[3];
+        SearchStatus = SearchEqual;
+    }
     else if (!wcscmp(argv[1], L"-contain")) {
         SearchStatus = SearchContain_insensitive;
         SearchString = argv[2];
@@ -73,9 +79,6 @@ int wmain(int argc, wchar_t* argv[])
     }
     else {
         return(0);
-    }
-    if (argc == 5 && !wcscmp(argv[4], L"-close")) {
-        CloseStatus = TRUE;
     }
     
     // get ntdll funcitons
@@ -97,6 +100,9 @@ int wmain(int argc, wchar_t* argv[])
     if (!CloseStatus) {
         // enumerate all handles
         EnumHandlesAndPrint(HandleInfo, SearchStatus, SearchString);
+    }
+    else {
+        EnumHandlesAndClose(HandleInfo, SearchStatus, SearchString, _wtoi(argv[2]));
     }
 
     return(0);
@@ -484,6 +490,43 @@ void EnumHandlesAndPrint(PSYSTEM_HANDLE_INFORMATION HandleInfo, SEARCH_STATUS Se
                     if (StartsWith(SearchString, filename)) {
                         wprintf(L"File:%s\tPID:%d\n", filename, handle.ProcessId);
                     }
+                }
+            }
+            free(FileNameInfo);
+        }
+    }
+    free(HandleInfo);
+}
+
+void EnumHandlesAndClose(PSYSTEM_HANDLE_INFORMATION HandleInfo, SEARCH_STATUS SearchStatus, wchar_t* SearchString, ULONG Pid)
+{
+    // enumerate all handles
+    for (ULONG i = 0; i < HandleInfo->HandleCount; i++)
+    {
+        SYSTEM_HANDLE handle = HandleInfo->Handles[i];
+
+        if (handle.ProcessId == Pid) {
+            HANDLE DupHandle = DuplicateFileHandle(handle);
+            POBJECT_NAME_INFORMATION FileNameInfo = NULL;
+            PWSTR filename = NULL;
+            BOOL ConvertStatus = FALSE;
+            if (DupHandle) {
+                FileNameInfo = GetFileNameFromHandle(DupHandle, NtQueryObject);
+                filename = FileNameInfo->Name.Buffer;
+                CloseHandle(DupHandle);
+            }
+            else {
+                continue;
+            }
+            if (FileNameInfo) {
+                ConvertStatus = ConvertFileName(filename);
+            }
+            else {
+                continue;
+            }
+            if (ConvertStatus) {
+                if (wcscmp(SearchString, filename) == 0) {
+                    wprintf(L"File:%s\tPID:%d\n", filename, handle.ProcessId);
                 }
             }
             free(FileNameInfo);

@@ -59,7 +59,8 @@ typedef enum _SEARCH_STATUS
     SearchContain_insensitive,
     SearchStarstWith_insensitive,
     SearchContain,
-    SearchStarstWith
+    SearchStarstWith,
+    SearchEqual
 }SEARCH_STATUS;
 
 typedef enum _SYSTEM_INFORMATION_CLASS
