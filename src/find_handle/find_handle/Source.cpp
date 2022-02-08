@@ -1,3 +1,5 @@
+#pragma execution_character_set("utf-8")
+
 #include <stdio.h>
 #include <io.h>
 #include <windows.h>
@@ -21,8 +23,6 @@
 #define DEBUG_PRINT(...) do{ } while ( false )
 #endif
 
-_NtQuerySystemInformation GetNtQuerySystemInformationHandle(void);
-_NtQueryObject GetNtQueryObjectHandle(void);
 PSYSTEM_HANDLE_INFORMATION GetSystemHandleInfo(_NtQuerySystemInformation NtQuerySystemInformation);
 HANDLE DuplicateFileHandle(SYSTEM_HANDLE handle);
 POBJECT_NAME_INFORMATION GetFileNameFromHandle(HANDLE handle, _NtQueryObject NtQueryObject);
@@ -31,17 +31,27 @@ BOOL StartsWith(wchar_t* pre, wchar_t* str);
 BOOL Contain(wchar_t* pre, wchar_t* str);
 BOOL StartsWith_insensitive(wchar_t* pre, wchar_t* str);
 BOOL Contain_insensitive(wchar_t* pre, wchar_t* str);
+BOOL CloseFileHandle(SYSTEM_HANDLE handle);
+BOOL LoadDLLfunctions(void);
+void EnumHandlesAndPrint(PSYSTEM_HANDLE_INFORMATION HandleInfo, SEARCH_STATUS SearchStatus, wchar_t* SearchString);
+
+// ntdll functions
+_NtQuerySystemInformation NtQuerySystemInformation = NULL;
+_NtQueryObject NtQueryObject = NULL;
 
 int wmain(int argc, wchar_t* argv[])
 {
+	// check memory leak debug flags
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+
+	// set console output with utf-8 encoding
 	SetConsoleOutputCP(65001);
-	//SetConsoleOutputCP(CP_UTF8); //Unicode (UTF-8)
-	//_setmode(_fileno(stdout), _O_U8TEXT); // _O_U16TEXT / _O_WTEXT
 	setlocale(LC_ALL, ".UTF8");
+
+    // parse command line args
 	SEARCH_STATUS SearchStatus = NoSearch;
 	wchar_t* SearchString = NULL;
-
+	BOOL CloseStatus = FALSE;
 	if (argc == 1) {
 		SearchStatus = NoSearch;
 	}
@@ -64,18 +74,13 @@ int wmain(int argc, wchar_t* argv[])
 	else {
 		return(0);
 	}
-	
-	// get NtQuerySystemInformation function from ntdll
-	_NtQuerySystemInformation NtQuerySystemInformation = GetNtQuerySystemInformationHandle();
-	if (NtQuerySystemInformation == NULL)
-	{
-		return(-1);
+	if (argc == 5 && !wcscmp(argv[4], L"-close")) {
+		CloseStatus = TRUE;
 	}
-	// get NtQueryObject function from ntdll
-	_NtQueryObject NtQueryObject = GetNtQueryObjectHandle();
-	if (NtQueryObject == NULL)
-	{
-		return(-1);
+	
+	// get ntdll funcitons
+	if (!LoadDLLfunctions()) {
+		return(1);
 	}
 
 	// get system hadle information
@@ -83,123 +88,18 @@ int wmain(int argc, wchar_t* argv[])
 	if (HandleInfo == NULL)
 	{
 		DEBUG_PRINT("error: get system handle info failed.\n");
-		return(-1);
+		return(1);
 	}
 	else {
 		DEBUG_PRINT("Success: get system handle info.\n");
 	}
 
-	// enumerate all handles
-	for (ULONG i = 0; i < HandleInfo->HandleCount; i++)
-	{
-		SYSTEM_HANDLE handle = HandleInfo->Handles[i];
-		
-		if (handle.ProcessId) {
-			HANDLE DupHandle = DuplicateFileHandle(handle);
-			POBJECT_NAME_INFORMATION FileNameInfo = NULL;
-			PWSTR filename = NULL;
-			BOOL ConvertStatus = FALSE;
-			if (DupHandle) {
-				FileNameInfo = GetFileNameFromHandle(DupHandle, NtQueryObject);
-				filename = FileNameInfo->Name.Buffer;
-				CloseHandle(DupHandle);
-			}
-			else {
-				continue;
-			}
-			if (FileNameInfo) {
-				ConvertStatus = ConvertFileName(filename);
-			}
-			else {
-				continue;
-			}
-			if (ConvertStatus) {
-				if (SearchStatus == NoSearch) {
-					// _tprintf(TEXT("File:%s\tPID:%d\n"), filename, handle.ProcessId);
-					wprintf(L"File:%s\tPID:%d\n", filename, handle.ProcessId);
-				}
-				else if (SearchStatus == SearchContain_insensitive) {
-					if (Contain_insensitive(SearchString, filename)) {
-						wprintf(L"File:%s\tPID:%d\n", filename, handle.ProcessId);
-					}
-				}
-				else if (SearchStatus == SearchStarstWith_insensitive) {
-					if (StartsWith_insensitive(SearchString, filename)) {
-						wprintf(L"File:%s\tPID:%d\n", filename, handle.ProcessId);
-					}
-				}
-				else if (SearchStatus == SearchContain) {
-					if (Contain(SearchString, filename)) {
-						wprintf(L"File:%s\tPID:%d\n", filename, handle.ProcessId);
-					}
-				}
-				else if (SearchStatus == SearchStarstWith) {
-					if (StartsWith(SearchString, filename)) {
-						wprintf(L"File:%s\tPID:%d\n", filename, handle.ProcessId);
-					}
-				}
-			}
-			free(FileNameInfo);
-		}
+	if (!CloseStatus) {
+		// enumerate all handles
+		EnumHandlesAndPrint(HandleInfo, SearchStatus, SearchString);
 	}
 
-	free(HandleInfo);
 	return(0);
-}
-
-_NtQuerySystemInformation GetNtQuerySystemInformationHandle(void)
-{
-	/* Import functions manually from NTDLL */
-	HMODULE Dllfile = GetModuleHandleA("ntdll.dll");  // try to load ntdll, if return null exit
-	if (Dllfile)
-	{
-		// get NtQuerySystemInformation handle
-		_NtQuerySystemInformation NtQuerySystemInformation =
-			(_NtQuerySystemInformation)GetProcAddress(Dllfile, "NtQuerySystemInformation");
-
-		if (NtQuerySystemInformation == NULL)
-		{
-			DEBUG_PRINT("error: get NtQuerySystemInformation function handle failed.\n");
-			return(NULL);
-		}
-		else {
-			DEBUG_PRINT("Success: get NtQuerySystemInformation function handle.\n");
-			return NtQuerySystemInformation;
-		}
-	}
-	else {
-		// load ntdll failed, exit program.
-		DEBUG_PRINT("error: ntdll.dll load failed!\n");
-		return(NULL);
-	}
-}
-
-_NtQueryObject GetNtQueryObjectHandle(void)
-{
-	/* Import functions manually from NTDLL */
-	HMODULE Dllfile = GetModuleHandleA("ntdll.dll");  // try to load ntdll, if return null exit
-	if (Dllfile)
-	{
-		// get NtQuerySystemInformation handle
-		_NtQueryObject NtQueryObject =
-			(_NtQueryObject)GetProcAddress(Dllfile, "NtQueryObject");
-
-		if (NtQueryObject == NULL)
-		{
-			DEBUG_PRINT("error: get NtQueryObject function handle failed.\n");
-			return(NULL);
-		}
-		else {
-			DEBUG_PRINT("Success: get NtQueryObject function handle.\n");
-			return NtQueryObject;
-		}
-		return NtQueryObject;
-	}
-	else {
-		// load ntdll failed, exit program.
-		DEBUG_PRINT("error: ntdll.dll load failed!\n");
-		return(NULL);
-	}
 }
 
 PSYSTEM_HANDLE_INFORMATION GetSystemHandleInfo(_NtQuerySystemInformation NtQuerySystemInformation)
@@ -293,6 +193,53 @@ HANDLE DuplicateFileHandle(SYSTEM_HANDLE handle)
 
 	CloseHandle(ProcessHandle);
 	return(DupHandle);
+}
+
+BOOL CloseFileHandle(SYSTEM_HANDLE handle)
+{
+	HANDLE DupHandle = NULL;
+	HANDLE ProcessHandle = NULL;
+	NTSTATUS status;
+
+	/* Open a handle to the process associated with the handle */
+	if (!(ProcessHandle = OpenProcess(
+		PROCESS_DUP_HANDLE,
+		FALSE,
+		handle.ProcessId)))
+	{
+		//  open a handle to the process failed
+		DEBUG_PRINT("error: can't open a handle the process: %d\n", handle.ProcessId);
+		return(NULL);
+	}
+
+	// duplicate the system handle for further get file name, etc.
+	if (!DuplicateHandle(
+		ProcessHandle,
+		(HANDLE)handle.Handle,
+		GetCurrentProcess(),
+		&DupHandle,
+		0,
+		FALSE,
+		DUPLICATE_CLOSE_SOURCE))
+	{
+		// Will fail if not a regular file; just skip it. maybe a mutex lock
+		DEBUG_PRINT("error: con't duplicate this handle with close.\n");
+		CloseHandle(ProcessHandle);
+		CloseHandle(DupHandle);
+		return(NULL);
+	}
+
+	CloseHandle(ProcessHandle);
+
+	if (DupHandle) {
+		status = CloseHandle(DupHandle);
+	}
+	if (status != 0) {
+		return(TRUE);
+	}
+	else {
+		return(FALSE);
+	}
 }
 
 
@@ -416,3 +363,131 @@ BOOL Contain_insensitive(wchar_t* pre, wchar_t* str)
 	return wcsstr(str_copy, pre_copy) != 0;
 }
 
+
+_NtQuerySystemInformation GetNtQuerySystemInformationHandle(void)
+{
+	/* Import functions manually from NTDLL */
+	HMODULE Dllfile = GetModuleHandleA("ntdll.dll");  // try to load ntdll, if return null exit
+	if (Dllfile)
+	{
+		// get NtQuerySystemInformation handle
+		_NtQuerySystemInformation NtQuerySystemInformation =
+			(_NtQuerySystemInformation)GetProcAddress(Dllfile, "NtQuerySystemInformation");
+
+		if (NtQuerySystemInformation == NULL)
+		{
+			DEBUG_PRINT("error: get NtQuerySystemInformation function handle failed.\n");
+			return(NULL);
+		}
+		else {
+			DEBUG_PRINT("Success: get NtQuerySystemInformation function handle.\n");
+			return NtQuerySystemInformation;
+		}
+	}
+	else {
+		// load ntdll failed, exit program.
+		DEBUG_PRINT("error: ntdll.dll load failed!\n");
+		return(NULL);
+	}
+}
+
+_NtQueryObject GetNtQueryObjectHandle(void)
+{
+	/* Import functions manually from NTDLL */
+	HMODULE Dllfile = GetModuleHandleA("ntdll.dll");  // try to load ntdll, if return null exit
+	if (Dllfile)
+	{
+		// get NtQuerySystemInformation handle
+		_NtQueryObject NtQueryObject =
+			(_NtQueryObject)GetProcAddress(Dllfile, "NtQueryObject");
+
+		if (NtQueryObject == NULL)
+		{
+			DEBUG_PRINT("error: get NtQueryObject function handle failed.\n");
+			return(NULL);
+		}
+		else {
+			DEBUG_PRINT("Success: get NtQueryObject function handle.\n");
+			return NtQueryObject;
+		}
+	}
+	else {
+		// load ntdll failed, exit program.
+		DEBUG_PRINT("error: ntdll.dll load failed!\n");
+		return(NULL);
+	}
+}
+
+BOOL LoadDLLfunctions(void)
+{
+	// get NtQuerySystemInformation function from ntdll
+	NtQuerySystemInformation = GetNtQuerySystemInformationHandle();
+	if (NtQuerySystemInformation == NULL)
+	{
+		return(FALSE);
+	}
+	// get NtQueryObject function from ntdll
+	NtQueryObject = GetNtQueryObjectHandle();
+	if (NtQueryObject == NULL)
+	{
+		return(FALSE);
+	}
+	return(TRUE);
+}
+
+void EnumHandlesAndPrint(PSYSTEM_HANDLE_INFORMATION HandleInfo, SEARCH_STATUS SearchStatus, wchar_t* SearchString)
+{
+	// enumerate all handles
+	for (ULONG i = 0; i < HandleInfo->HandleCount; i++)
+	{
+		SYSTEM_HANDLE handle = HandleInfo->Handles[i];
+
+		if (handle.ProcessId) {
+			HANDLE DupHandle = DuplicateFileHandle(handle);
+			POBJECT_NAME_INFORMATION FileNameInfo = NULL;
+			PWSTR filename = NULL;
+			BOOL ConvertStatus = FALSE;
+			if (DupHandle) {
+				FileNameInfo = GetFileNameFromHandle(DupHandle, NtQueryObject);
+				filename = FileNameInfo->Name.Buffer;
+				CloseHandle(DupHandle);
+			}
+			else {
+				continue;
+			}
+			if (FileNameInfo) {
+				ConvertStatus = ConvertFileName(filename);
+			}
+			else {
+				continue;
+			}
+			if (ConvertStatus) {
+				if (SearchStatus == NoSearch) {
+					wprintf(L"File:%s\tPID:%d\n", filename, handle.ProcessId);
+				}
+				else if (SearchStatus == SearchContain_insensitive) {
+					if (Contain_insensitive(SearchString, filename)) {
+						wprintf(L"File:%s\tPID:%d\n", filename, handle.ProcessId);
+					}
+				}
+				else if (SearchStatus == SearchStarstWith_insensitive) {
+					if (StartsWith_insensitive(SearchString, filename)) {
+						wprintf(L"File:%s\tPID:%d\n", filename, handle.ProcessId);
+					}
+				}
+				else if (SearchStatus == SearchContain) {
+					if (Contain(SearchString, filename)) {
+						wprintf(L"File:%s\tPID:%d\n", filename, handle.ProcessId);
+					}
+				}
+				else if (SearchStatus == SearchStarstWith) {
+					if (StartsWith(SearchString, filename)) {
+						wprintf(L"File:%s\tPID:%d\n", filename, handle.ProcessId);
+					}
+				}
+			}
+			free(FileNameInfo);
+		}
+	}
+	free(HandleInfo);
+}

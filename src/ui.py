@@ -251,6 +251,7 @@ class MainWindow(QMainWindow):
         self.horizontalLayout_2.removeWidget(self.tmp_file_path_input)
         self.tmp_file_path_input.deleteLater()
 
+        # widget initialize
         self.process_tree.setObjectName("process_tree")
         self.process_tree.setColumnCount(2)
         self.process_tree.setHeaderLabels(["Process_name(PID)", "Exec"])
