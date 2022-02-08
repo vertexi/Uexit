@@ -105,6 +105,8 @@ class MyTreeWidget(QTreeWidget):
         parent = item.parent()
         if parent:
             parent.removeChild(item)
+            if parent.childCount() == 1:
+                self.remove_item(parent)
         else:
             self.takeTopLevelItem(self.indexOfTopLevelItem(item))
 
@@ -273,7 +275,7 @@ class MainWindow(QMainWindow):
         # widget initialize
         self.process_tree.setObjectName("process_tree")
         self.process_tree.setColumnCount(2)
-        self.process_tree.setHeaderLabels(["Process_name(PID)", "Exec"])
+        self.process_tree.setHeaderLabels(["Process name(PID)", "Executable path"])
 
         self.file_path_input.setText("")
         self.file_path_input.setObjectName("file_path_input")
@@ -353,6 +355,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, a0: QCloseEvent) -> None:
         if self.collect_proc:
             self.collect_proc.kill_exist_process()
+        self.kill_task.stop_self_process()
 
     def case_sensitive_toggle(self):
         # if button is checked

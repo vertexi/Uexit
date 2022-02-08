@@ -100,7 +100,7 @@
     <item>
      <widget class="QPushButton" name="kill_pushbutton">
       <property name="toolTip">
-       <string>kill process</string>
+       <string>kill process or close handle</string>
       </property>
       <property name="text">
        <string>Kill</string>

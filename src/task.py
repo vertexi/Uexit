@@ -10,6 +10,8 @@ ON_POSIX = 'posix' in sys.builtin_module_names
 
 
 class Tasks(QObject):
+    process: Popen
+
     send_kill_status_message: pyqtBoundSignal
     send_kill_status_message = pyqtSignal(str)
     clean_killed_tree_item: pyqtBoundSignal
@@ -17,6 +19,7 @@ class Tasks(QObject):
 
     def __init__(self):
         super(Tasks, self).__init__()
+        self.process = None
 
     def kill_process(self, tree_widget_item_list: list):
         for tree_widget_item in tree_widget_item_list:
@@ -45,10 +48,24 @@ class Tasks(QObject):
 
     def kill_single_handle(self, handle_info: list):
         arg_list = ["-close", str(int(handle_info[0])), handle_info[1].text(0)]
-        process = Popen([global_seting.exec_file] + arg_list, close_fds=ON_POSIX, creationflags=0x00000008)
+        self.stop_self_process()
+        self.process = Popen([global_seting.exec_file] + arg_list, close_fds=ON_POSIX, creationflags=0x00000008)
+        return_code = self.process.wait(timeout=1)
+        if return_code is not None:
+            return_code = int(return_code)
+            if return_code == 0:
+                self.clean_killed_tree_item.emit(handle_info[1])
+                self.send_kill_status_message.emit(f"success: close {handle_info[1].text(0)}) process finished.")
+                return
+        self.send_kill_status_message.emit(f"failed: close {handle_info[1].text(0)}) process failed.")
 
     def kill_handle(self, handle_list: list):
         # handle_list [[pid_string: str, file path: MyTreeWidgetItem], ...]
         for handle in handle_list:
             self.kill_single_handle(handle)
+
+    def stop_self_process(self):
+        if self.process:
+            if self.process.poll() is None:
+                self.process.kill()
 
