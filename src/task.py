@@ -1,6 +1,12 @@
 import psutil
 from PyQt5.QtCore import pyqtSignal, QObject, pyqtBoundSignal
 from ui import MyTreeWidgetItem
+from subprocess import Popen
+import global_seting
+import sys
+
+
+ON_POSIX = 'posix' in sys.builtin_module_names
 
 
 class Tasks(QObject):
@@ -12,7 +18,7 @@ class Tasks(QObject):
     def __init__(self):
         super(Tasks, self).__init__()
 
-    def kill(self, tree_widget_item_list: list):
+    def kill_process(self, tree_widget_item_list: list):
         for tree_widget_item in tree_widget_item_list:
             attempt = 20
             pid_num = int(tree_widget_item.datum)
@@ -36,3 +42,13 @@ class Tasks(QObject):
                         return
             self.send_kill_status_message.emit(f"success: kill {name}({pid_num}) process finished.")
             self.clean_killed_tree_item.emit(tree_widget_item)
+
+    def kill_single_handle(self, handle_info: list):
+        arg_list = ["-close", str(int(handle_info[0])), handle_info[1].text(0)]
+        process = Popen([global_seting.exec_file] + arg_list, close_fds=ON_POSIX, creationflags=0x00000008)
+
+    def kill_handle(self, handle_list: list):
+        # handle_list [[pid_string: str, file path: MyTreeWidgetItem], ...]
+        for handle in handle_list:
+            self.kill_single_handle(handle)
+

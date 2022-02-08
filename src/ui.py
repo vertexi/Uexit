@@ -23,8 +23,10 @@ class MyTreeWidgetItem(QTreeWidgetItem):
 class MyTreeWidget(QTreeWidget):
     iconProvider: QFileIconProvider
 
-    start_kill_signal: pyqtBoundSignal
-    start_kill_signal = pyqtSignal(list)
+    kill_process_signal: pyqtBoundSignal
+    kill_process_signal = pyqtSignal(list)
+    kill_handle_signal: pyqtBoundSignal
+    kill_handle_signal = pyqtSignal(list)
 
     def __init__(self, *args, **kwargs):
         super(MyTreeWidget, self).__init__(*args, **kwargs)
@@ -43,7 +45,7 @@ class MyTreeWidget(QTreeWidget):
 
     def clear_me(self):
         self.clear()
-        self.process_tree = {}  # pid:tree_itm
+        self.process_tree = {}  # pid:top_tree_itm
         self.top_items = []
 
     def build_process_tree(self, list_: list):
@@ -66,24 +68,38 @@ class MyTreeWidget(QTreeWidget):
 
             # create first child file path item
             path_item = MyTreeWidgetItem(tree_item)
-            path_item.setText(0, list_[2])
-            if list_[2] == "":
-                path_item.setHidden(True)
-            else:
-                path_item.setIcon(0, self.icon_provider.icon(QFileInfo(list_[2])))
+            path_item.setText(0, "")
+            path_item.setHidden(True)
             path_item.setFlags(path_item.flags() | Qt.ItemIsUserCheckable)
             path_item.setCheckState(0, Qt.Unchecked)
+
+            if list_[2] != "":
+                path_item = MyTreeWidgetItem(tree_item)
+                path_item.setText(0, list_[2])
+                path_item.setIcon(0, self.icon_provider.icon(QFileInfo(list_[2])))
+                path_item.setFlags(path_item.flags() | Qt.ItemIsUserCheckable)
+                path_item.setCheckState(0, Qt.Unchecked)
 
             self.process_tree[list_[1]] = tree_item
             self.top_items.append(tree_item)
 
     def send_to_kill(self):
-        kill_list = []
+        kill_process_list = []
+        kill_handle_list = []
         for i in range(self.topLevelItemCount()):
-            if int(self.topLevelItem(i).checkState(0)) > 0:
-                print(f"{self.topLevelItem(i).checkState(0)}, {self.topLevelItem(i).datum}")
-                kill_list.append(self.topLevelItem(i))
-        self.start_kill_signal.emit(kill_list)
+            top_itm = self.topLevelItem(i)
+            selection_status = int(top_itm.checkState(0))
+            if selection_status == 2:  # full selection
+                kill_process_list.append(top_itm)
+            elif selection_status == 1:  # partial selection
+                for j in range(top_itm.childCount()):
+                    # top_itm.child(j).text(0) file path
+                    if top_itm.child(j).checkState(0) == 2:
+                        kill_handle_list.append([top_itm.datum, top_itm.child(j)])
+        if kill_process_list:
+            self.kill_process_signal.emit(kill_process_list)
+        if kill_handle_list:
+            self.kill_handle_signal.emit(kill_handle_list)
 
     def remove_item(self, item: MyTreeWidgetItem):
         parent = item.parent()
@@ -269,7 +285,8 @@ class MainWindow(QMainWindow):
 
         # connect signals and slots
         self.kill_button.clicked.connect(self.process_tree.send_to_kill)
-        self.process_tree.start_kill_signal.connect(self.kill_task.kill)
+        self.process_tree.kill_process_signal.connect(self.kill_task.kill_process)
+        self.process_tree.kill_handle_signal.connect(self.kill_task.kill_handle)
 
         self.refresh_pushbutton.clicked.connect(self.send_to_start_proc)
         self.refresh_pushbutton.clicked.connect(self.process_tree.clear_me)
@@ -289,7 +306,7 @@ class MainWindow(QMainWindow):
 
     def auto_adj_size(self):
         q_rect = QGuiApplication.primaryScreen().geometry()
-        self.resize(q_rect.width() / 5, q_rect.height() / 5)
+        self.resize(q_rect.width() / 3, q_rect.height() / 3)
 
     def start_collect_process(self, arg_list: list):
         if self.collect_proc:
