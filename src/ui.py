@@ -7,6 +7,7 @@ from PyQt5.QtCore import Qt, QCoreApplication, pyqtSignal, pyqtBoundSignal, QFil
 from proc_parse import CollectProcess
 import global_seting
 import subprocess
+import pathlib
 
 
 class MyTreeWidgetItem(QTreeWidgetItem):
@@ -53,7 +54,9 @@ class MyTreeWidget(QTreeWidget):
         if list_[1] in self.process_tree:
             # create follow child file path item
             path_item = MyTreeWidgetItem(self.process_tree[list_[1]])
-            path_item.setText(0, list_[2])
+            path = pathlib.PurePath(list_[2])
+            path_item.setText(0, path.name)
+            path_item.setText(1, list_[2])
             path_item.setFlags(path_item.flags() | Qt.ItemIsUserCheckable)
             path_item.setCheckState(0, Qt.Unchecked)
             path_item.setIcon(0, self.icon_provider.icon(QFileInfo(list_[2])))  # set icon base on the file extension
@@ -66,7 +69,7 @@ class MyTreeWidget(QTreeWidget):
             tree_item.setFlags(tree_item.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable)
             tree_item.setIcon(0, self.icon_provider.icon(QFileInfo(list_[3])))
 
-            # create first child file path item
+            # create first blank child file path item
             path_item = MyTreeWidgetItem(tree_item)
             path_item.setText(0, "")
             path_item.setHidden(True)
@@ -75,7 +78,9 @@ class MyTreeWidget(QTreeWidget):
 
             if list_[2] != "":
                 path_item = MyTreeWidgetItem(tree_item)
-                path_item.setText(0, list_[2])
+                path = pathlib.PurePath(list_[2])
+                path_item.setText(0, path.name)
+                path_item.setText(1, list_[2])
                 path_item.setIcon(0, self.icon_provider.icon(QFileInfo(list_[2])))
                 path_item.setFlags(path_item.flags() | Qt.ItemIsUserCheckable)
                 path_item.setCheckState(0, Qt.Unchecked)
@@ -93,7 +98,7 @@ class MyTreeWidget(QTreeWidget):
                 kill_process_list.append(top_itm)
             elif selection_status == 1:  # partial selection
                 for j in range(top_itm.childCount()):
-                    # top_itm.child(j).text(0) file path
+                    # top_itm.child(j).text(1) file path
                     if top_itm.child(j).checkState(0) == 2:
                         kill_handle_list.append([top_itm.datum, top_itm.child(j)])
         if kill_process_list:
@@ -123,7 +128,7 @@ class MyTreeWidget(QTreeWidget):
         if self.currentItem() in self.top_items:
             file_path = self.currentItem().text(1)
         else:
-            file_path = self.currentItem().text(0)
+            file_path = self.currentItem().text(1)
         subprocess.run(f'explorer /select,"{file_path}"')
 
 

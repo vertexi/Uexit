@@ -50,7 +50,8 @@ class Tasks(QObject):
             self.clean_killed_tree_item.emit(tree_widget_item)
 
     def kill_single_handle(self, handle_info: list):
-        arg_list = ["-close", str(int(handle_info[0])), handle_info[1].text(0)]
+        file_path = handle_info[1].text(1)
+        arg_list = ["-close", str(int(handle_info[0])), file_path]
         self.stop_self_process()
         self.process = Popen([global_seting.exec_file] + arg_list, close_fds=ON_POSIX, creationflags=0x00000008)
         return_code = self.process.wait(timeout=1)
@@ -58,9 +59,9 @@ class Tasks(QObject):
             return_code = int(return_code)
             if return_code == 0:
                 self.clean_killed_tree_item.emit(handle_info[1])
-                self.send_kill_status_message.emit(f"success: close {handle_info[1].text(0)}) process finished.")
+                self.send_kill_status_message.emit(f"success: close {file_path}) process finished.")
                 return
-        self.send_kill_status_message.emit(f"failed: close {handle_info[1].text(0)}) process failed.")
+        self.send_kill_status_message.emit(f"failed: close {file_path}) process failed.")
 
     def kill_handle(self, handle_list: list):
         # handle_list [[pid_string: str, file path: MyTreeWidgetItem], ...]
