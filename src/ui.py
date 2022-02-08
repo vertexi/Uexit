@@ -50,12 +50,11 @@ class MyTreeWidget(QTreeWidget):
         # list_[0] process_name list_[1] pid list_[2] open file path
         if list_[1] in self.process_tree:
             # create follow child file path item
-            path_item = MyTreeWidgetItem()
+            path_item = MyTreeWidgetItem(self.process_tree[list_[1]])
             path_item.setText(0, list_[2])
             path_item.setFlags(path_item.flags() | Qt.ItemIsUserCheckable)
             path_item.setCheckState(0, Qt.Unchecked)
             path_item.setIcon(0, self.icon_provider.icon(QFileInfo(list_[2])))  # set icon base on the file extension
-            self.process_tree[list_[1]].insertChild(0, path_item)
         else:
             # create process_name(PID) top item
             tree_item = MyTreeWidgetItem(self)
@@ -63,12 +62,15 @@ class MyTreeWidget(QTreeWidget):
             tree_item.setText(1, list_[3])
             tree_item.add_data(list_[1])
             tree_item.setFlags(tree_item.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable)
+            tree_item.setIcon(0, self.icon_provider.icon(QFileInfo(list_[3])))
 
             # create first child file path item
             path_item = MyTreeWidgetItem(tree_item)
             path_item.setText(0, list_[2])
             if list_[2] == "":
                 path_item.setHidden(True)
+            else:
+                path_item.setIcon(0, self.icon_provider.icon(QFileInfo(list_[2])))
             path_item.setFlags(path_item.flags() | Qt.ItemIsUserCheckable)
             path_item.setCheckState(0, Qt.Unchecked)
 
@@ -79,6 +81,7 @@ class MyTreeWidget(QTreeWidget):
         kill_list = []
         for i in range(self.topLevelItemCount()):
             if int(self.topLevelItem(i).checkState(0)) > 0:
+                print(f"{self.topLevelItem(i).checkState(0)}, {self.topLevelItem(i).datum}")
                 kill_list.append(self.topLevelItem(i))
         self.start_kill_signal.emit(kill_list)
 

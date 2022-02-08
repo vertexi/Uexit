@@ -3,7 +3,8 @@
 - [x] file widget
 - [ ] build-in search
 - [ ] close handle
-- [x] file icon                 (could improve more)
+- [x] file icon
+- [x] improve file icon
 - [ ] kill process tree
 - [x] select search type
 - [x] case sensitive
