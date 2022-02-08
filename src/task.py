@@ -32,17 +32,20 @@ class Tasks(QObject):
             except Exception as e:
                 self.send_kill_status_message.emit(f"failed: kill {name}({pid_num}) process failed.{e}")
                 return
-            while psutil.pid_exists(pid_num):
+            if psutil.pid_exists(pid_num):
                 try:
                     process.kill()
                 except Exception as e:
                     self.send_kill_status_message.emit(f"failed: kill {name}({pid_num}) process failed.{e}")
                     return
-                else:
-                    attempt = attempt - 1
-                    if attempt < 0:
-                        self.send_kill_status_message.emit(f"failed: kill {name}({pid_num}) process failed.")
-                        return
+            else:
+                self.send_kill_status_message.emit(f"failed: {name}({pid_num}) process no longer exists.")
+                return
+            try:
+                process.wait(timeout=1)
+            except psutil.TimeoutExpired:
+                self.send_kill_status_message.emit(f"failed: {name}({pid_num}) timeout.")
+                return
             self.send_kill_status_message.emit(f"success: kill {name}({pid_num}) process finished.")
             self.clean_killed_tree_item.emit(tree_widget_item)
 
