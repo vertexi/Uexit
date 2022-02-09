@@ -8,6 +8,8 @@ from proc_parse import CollectProcess
 import global_seting
 import subprocess
 import pathlib
+from pywinauto import application
+from pywinauto.findwindows import WindowAmbiguousError, WindowNotFoundError
 
 
 class MyTreeWidgetItem(QTreeWidgetItem):
@@ -28,6 +30,8 @@ class MyTreeWidget(QTreeWidget):
     kill_process_signal = pyqtSignal(list)
     kill_handle_signal: pyqtBoundSignal
     kill_handle_signal = pyqtSignal(list)
+    send_status_message: pyqtBoundSignal
+    send_status_message = pyqtSignal(str)
 
     def __init__(self, *args, **kwargs):
         super(MyTreeWidget, self).__init__(*args, **kwargs)
@@ -117,10 +121,16 @@ class MyTreeWidget(QTreeWidget):
 
     # the function to display context menu
     def _show_context_menu(self, position):
+        menu = QMenu(self)
+
         open_file_in_explorer = QAction("Reveal in Explorer")
         open_file_in_explorer.triggered.connect(self.open_file_in_explorer)
-        menu = QMenu(self)
         menu.addAction(open_file_in_explorer)
+
+        bring_to_front = QAction("Bring to front")
+        bring_to_front.triggered.connect(self.bring_to_front)
+        menu.addAction(bring_to_front)
+
         menu.exec_(self.mapToGlobal(position))
 
     # the action executed when menu is clicked
@@ -130,6 +140,30 @@ class MyTreeWidget(QTreeWidget):
         else:
             file_path = self.currentItem().text(1)
         subprocess.run(f'explorer /select,"{file_path}"')
+
+    def bring_to_front(self):
+        app = application.Application()
+
+        if self.currentItem() in self.top_items:
+            pid = int(self.currentItem().datum)
+        else:
+            pid = int(self.currentItem().parent().datum)
+
+        try:
+            app.connect(process=pid)
+            # Access app's window object
+            app_dialog = app.top_window()
+            app_dialog.minimize()
+            app_dialog.restore()
+        except WindowNotFoundError:
+            self.send_status_message.emit(f"pid:{pid} not found")
+            pass
+        except WindowAmbiguousError:
+            self.send_status_message.emit(f"There are too many pid:{pid} windows found")
+            pass
+        except RuntimeError as e:
+            self.send_status_message.emit(f"pid:{pid} windows brint to front failed.{e}")
+            pass
 
 
 class MyLineEdit(QLineEdit):
@@ -294,6 +328,7 @@ class MainWindow(QMainWindow):
         self.kill_button.clicked.connect(self.process_tree.send_to_kill)
         self.process_tree.kill_process_signal.connect(self.kill_task.kill_process)
         self.process_tree.kill_handle_signal.connect(self.kill_task.kill_handle)
+        self.process_tree.send_status_message.connect(self.append_status_message)
 
         self.refresh_pushbutton.clicked.connect(self.send_to_start_proc)
         self.refresh_pushbutton.clicked.connect(self.process_tree.clear_me)
