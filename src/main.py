@@ -22,6 +22,8 @@ try:
 except ImportError:
     pass
 
+global_seting.set_path(True)
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)  # initialize qt app
     app.setWindowIcon(QIcon(QPixmap(global_seting.icon_file)))  # make icon
