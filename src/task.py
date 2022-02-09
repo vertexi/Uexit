@@ -4,6 +4,7 @@ from ui import MyTreeWidgetItem
 from subprocess import Popen
 import global_seting
 import sys
+import os
 
 
 ON_POSIX = 'posix' in sys.builtin_module_names
@@ -23,7 +24,6 @@ class Tasks(QObject):
 
     def kill_process(self, tree_widget_item_list: list):
         for tree_widget_item in tree_widget_item_list:
-            attempt = 20
             pid_num = int(tree_widget_item.datum)
             name = ""
             try:
@@ -41,6 +41,7 @@ class Tasks(QObject):
             else:
                 self.send_kill_status_message.emit(f"failed: {name}({pid_num}) process no longer exists.")
                 return
+
             try:
                 process.wait(timeout=1)
             except psutil.TimeoutExpired:

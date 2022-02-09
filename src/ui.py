@@ -126,13 +126,15 @@ class MyTreeWidget(QTreeWidget):
     def _show_context_menu(self, position):
         menu = QMenu(self)
 
+        tree_item = self.itemAt(position)
+        if tree_item in self.top_items:
+            bring_to_front = QAction("Bring to front")
+            bring_to_front.triggered.connect(self.bring_to_front)
+            menu.addAction(bring_to_front)
+
         open_file_in_explorer = QAction("Reveal in Explorer")
         open_file_in_explorer.triggered.connect(self.open_file_in_explorer)
         menu.addAction(open_file_in_explorer)
-
-        bring_to_front = QAction("Bring to front")
-        bring_to_front.triggered.connect(self.bring_to_front)
-        menu.addAction(bring_to_front)
 
         menu.exec_(self.mapToGlobal(position))
 
