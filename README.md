@@ -2,7 +2,7 @@
 
 - [x] file widget
 - [ ] build-in search
-- [ ] close handle
+- [x] close handle
 - [x] file icon
 - [x] improve file icon
 - [ ] kill process tree

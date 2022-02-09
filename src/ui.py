@@ -8,7 +8,10 @@ from proc_parse import CollectProcess
 import global_seting
 import subprocess
 import pathlib
-from pywinauto import application
+
+import sys
+sys.coinit_flags = 2  # COINIT_APARTMENTTHREADED
+from pywinauto.application import Application
 from pywinauto.findwindows import WindowAmbiguousError, WindowNotFoundError
 
 
@@ -142,7 +145,7 @@ class MyTreeWidget(QTreeWidget):
         subprocess.run(f'explorer /select,"{file_path}"')
 
     def bring_to_front(self):
-        app = application.Application()
+        app = Application()
 
         if self.currentItem() in self.top_items:
             pid = int(self.currentItem().datum)
