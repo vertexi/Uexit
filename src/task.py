@@ -74,3 +74,31 @@ class Tasks(QObject):
             if self.process.poll() is None:
                 self.process.kill()
 
+    def kill_proc_tree(self, target: MyTreeWidgetItem):
+        """Kill a process tree (including grandchildren) with signal
+        "sig" and return a (gone, still_alive) tuple.
+        "on_terminate", if specified, is a callback function which is
+        called as soon as a child terminates.
+        """
+        pid = int(target.datum)
+        assert pid != os.getpid(), "won't kill myself"
+        try:
+            parent = psutil.Process(pid)
+        except Exception as e:
+            self.send_kill_status_message.emit(f"failed: kill ({target.text(0)}) process failed.{e}")
+            return
+        children = parent.children(recursive=True)
+        children.append(parent)
+        for p in children:
+            try:
+                p.kill()
+            except:
+                pass
+        psutil.wait_procs(children, timeout=1)
+        if psutil.pid_exists(pid):
+            self.send_kill_status_message.emit(f"failed: kill ({target.text(0)}) process failed.")
+            return
+        else:
+            self.send_kill_status_message.emit(f"success: kill ({target.text(0)}) process.")
+            self.clean_killed_tree_item.emit(target)
+            return

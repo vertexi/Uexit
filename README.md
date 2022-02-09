@@ -5,7 +5,7 @@
 - [x] close handle
 - [x] file icon
 - [x] improve file icon
-- [ ] kill process tree
+- [x] kill process tree
 - [x] select search type
 - [x] case sensitive
 - [x] after kill fast refresh(status bar)

@@ -33,6 +33,8 @@ class MyTreeWidget(QTreeWidget):
     kill_process_signal = pyqtSignal(list)
     kill_handle_signal: pyqtBoundSignal
     kill_handle_signal = pyqtSignal(list)
+    kill_process_tree_signal: pyqtBoundSignal
+    kill_process_tree_signal = pyqtSignal(MyTreeWidgetItem)
     send_status_message: pyqtBoundSignal
     send_status_message = pyqtSignal(str)
 
@@ -132,6 +134,10 @@ class MyTreeWidget(QTreeWidget):
             bring_to_front.triggered.connect(self.bring_to_front)
             menu.addAction(bring_to_front)
 
+            kill_process_tree = QAction("Kill process tree")
+            kill_process_tree.triggered.connect(self.kill_process_tree)
+            menu.addAction(kill_process_tree)
+
         open_file_in_explorer = QAction("Reveal in Explorer")
         open_file_in_explorer.triggered.connect(self.open_file_in_explorer)
         menu.addAction(open_file_in_explorer)
@@ -169,6 +175,9 @@ class MyTreeWidget(QTreeWidget):
         except RuntimeError as e:
             self.send_status_message.emit(f"pid:{pid} windows brint to front failed.{e}")
             pass
+
+    def kill_process_tree(self):
+        self.kill_process_tree_signal.emit(self.currentItem())
 
 
 class MyLineEdit(QLineEdit):
@@ -334,6 +343,7 @@ class MainWindow(QMainWindow):
         self.process_tree.kill_process_signal.connect(self.kill_task.kill_process)
         self.process_tree.kill_handle_signal.connect(self.kill_task.kill_handle)
         self.process_tree.send_status_message.connect(self.append_status_message)
+        self.process_tree.kill_process_tree_signal.connect(self.kill_task.kill_proc_tree)
 
         self.refresh_pushbutton.clicked.connect(self.send_to_start_proc)
         self.refresh_pushbutton.clicked.connect(self.process_tree.clear_me)
